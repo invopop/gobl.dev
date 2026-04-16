@@ -2,12 +2,9 @@ module github.com/invopop/gobl.dev
 
 go 1.24.0
 
-// Remove this replace directive once gobl pkg/api is published.
-replace github.com/invopop/gobl => ../gobl
-
 require (
 	github.com/a-h/templ v0.3.1001
-	github.com/invopop/gobl v0.308.0
+	github.com/invopop/gobl v0.400.2-0.20260416151900-c367c02e19a0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 )

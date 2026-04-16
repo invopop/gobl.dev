@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,9 +26,13 @@ func main() {
 }
 
 func run() error {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	const defaultPort = "8080"
+	var port string
+	flag.StringVar(&port, "p", defaultPort, "port to listen on")
+	flag.Parse()
+
+	if env := os.Getenv("PORT"); env != "" && port == defaultPort {
+		port = env
 	}
 
 	handler := goblapi.NewHandler(

@@ -1,0 +1,49 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+args_bin = []
+bin = "./tmp/gobl-dev"
+cmd = "templ generate && go build -o ./tmp/gobl-dev ."
+delay = 1000
+exclude_dir = ["tmp", "vendor"]
+exclude_file = []
+exclude_regex = ["_test.go", "_templ.go"]
+exclude_unchanged = false
+follow_symlink = false
+include_dir = []
+include_ext = ["go", "js", "templ", "css", "html"]
+include_file = []
+log = "build-errors.log"
+poll = false
+poll_interval = 0
+post_cmd = []
+pre_cmd = []
+rerun = false
+rerun_delay = 500
+send_interrupt = true
+kill_delay = 500
+stop_on_error = false
+
+[color]
+app = ""
+build = "yellow"
+main = "magenta"
+runner = "green"
+watcher = "cyan"
+
+[log]
+main_only = false
+time = false
+
+[misc]
+clean_on_exit = false
+
+[proxy]
+app_port = 0
+enabled = false
+proxy_port = 0
+
+[screen]
+clear_on_rebuild = false
+keep_scroll = true

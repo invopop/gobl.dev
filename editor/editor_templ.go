@@ -206,6 +206,8 @@ func Page() templ.Component {
 				{Name: "codemirror", URL: "https://esm.sh/codemirror@6.0.1"},
 				{Name: "@codemirror/state", URL: "https://esm.sh/@codemirror/state@6"},
 				{Name: "codemirror-json-schema", URL: "https://esm.sh/@invopop/codemirror-json-schema@0.9.3"},
+				{Name: "@fsegurai/codemirror-theme-material-light", URL: "https://esm.sh/@fsegurai/codemirror-theme-material-light@6"},
+				{Name: "@fsegurai/codemirror-theme-material-dark", URL: "https://esm.sh/@fsegurai/codemirror-theme-material-dark@6"},
 			},
 			Modules: []props.Module{
 				{Src: path.Join(AssetPath, popui.Versioned(editorAssets, "editor.js"))},

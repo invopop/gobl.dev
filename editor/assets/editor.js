@@ -3,69 +3,11 @@
 
 import { basicSetup, EditorView } from "codemirror";
 import { EditorState, Compartment } from "@codemirror/state";
+import { materialLight } from "@fsegurai/codemirror-theme-material-light";
+import { materialDark } from "@fsegurai/codemirror-theme-material-dark";
 
 // Theme compartment allows dynamic reconfiguration.
 const themeCompartment = new Compartment();
-
-const lightTheme = EditorView.theme(
-  {
-    "&": { backgroundColor: "#ffffff", color: "#1e293b" },
-    ".cm-content": { caretColor: "#334155" },
-    ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#334155" },
-    "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-      { backgroundColor: "#dbeafe" },
-    ".cm-panels": { backgroundColor: "#f8fafc", color: "#1e293b" },
-    ".cm-panels.cm-panels-top": { borderBottom: "1px solid #e2e8f0" },
-    ".cm-panels.cm-panels-bottom": { borderTop: "1px solid #e2e8f0" },
-    ".cm-searchMatch": { backgroundColor: "#fef08a" },
-    ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#fde047" },
-    ".cm-activeLine": { backgroundColor: "#f8fafc" },
-    ".cm-selectionMatch": { backgroundColor: "#e0f2fe" },
-    ".cm-matchingBracket": { color: "#16a34a", backgroundColor: "#dcfce7" },
-    ".cm-gutters": {
-      backgroundColor: "#f8fafc",
-      color: "#94a3b8",
-      borderRight: "1px solid #e2e8f0",
-    },
-    ".cm-activeLineGutter": { backgroundColor: "#f1f5f9" },
-    ".cm-foldPlaceholder": {
-      backgroundColor: "#e2e8f0",
-      color: "#64748b",
-      border: "none",
-    },
-  },
-  { dark: false },
-);
-
-const darkTheme = EditorView.theme(
-  {
-    "&": { backgroundColor: "#1e1e2e", color: "#cdd6f4" },
-    ".cm-content": { caretColor: "#f5e0dc" },
-    ".cm-cursor, .cm-dropCursor": { borderLeftColor: "#f5e0dc" },
-    "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-      { backgroundColor: "#45475a" },
-    ".cm-panels": { backgroundColor: "#181825", color: "#cdd6f4" },
-    ".cm-panels.cm-panels-top": { borderBottom: "1px solid #313244" },
-    ".cm-panels.cm-panels-bottom": { borderTop: "1px solid #313244" },
-    ".cm-searchMatch": { backgroundColor: "#a6adc844" },
-    ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#585b7044" },
-    ".cm-activeLine": { backgroundColor: "#181825" },
-    ".cm-selectionMatch": { backgroundColor: "#585b7044" },
-    ".cm-matchingBracket": { color: "#a6e3a1", backgroundColor: "#45475a" },
-    ".cm-gutters": {
-      backgroundColor: "#181825",
-      color: "#6c7086",
-      borderRight: "1px solid #313244",
-    },
-    ".cm-activeLineGutter": { backgroundColor: "#1e1e2e" },
-    ".cm-foldPlaceholder": {
-      backgroundColor: "#45475a",
-      color: "#cdd6f4",
-      border: "none",
-    },
-  },
-  { dark: true },
-);
 
 function isDark() {
   return document.documentElement.classList.contains("dark");
@@ -136,7 +78,7 @@ const editor = new EditorView({
     doc: defaultDoc,
     extensions: [
       basicSetup,
-      themeCompartment.of(isDark() ? darkTheme : lightTheme),
+      themeCompartment.of(isDark() ? materialDark : materialLight),
       EditorView.lineWrapping,
       jsonSchema(),
       EditorView.updateListener.of((update) => {
@@ -156,7 +98,7 @@ const editor = new EditorView({
 window._cmEditor = editor;
 window._cmSetDark = (dark) => {
   editor.dispatch({
-    effects: themeCompartment.reconfigure(dark ? darkTheme : lightTheme),
+    effects: themeCompartment.reconfigure(dark ? materialDark : materialLight),
   });
 };
 loadSchemaFromDoc(editor);

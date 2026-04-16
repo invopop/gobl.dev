@@ -3,8 +3,8 @@
 
 import { basicSetup, EditorView } from "codemirror";
 import { EditorState, Compartment } from "@codemirror/state";
-import { materialLight } from "@fsegurai/codemirror-theme-material-light";
-import { materialDark } from "@fsegurai/codemirror-theme-material-dark";
+import { vsCodeLight } from "@fsegurai/codemirror-theme-vscode-light";
+import { vsCodeDark } from "@fsegurai/codemirror-theme-vscode-dark";
 
 // Theme compartment allows dynamic reconfiguration.
 const themeCompartment = new Compartment();
@@ -78,7 +78,7 @@ const editor = new EditorView({
     doc: defaultDoc,
     extensions: [
       basicSetup,
-      themeCompartment.of(isDark() ? materialDark : materialLight),
+      themeCompartment.of(isDark() ? vsCodeDark : vsCodeLight),
       EditorView.lineWrapping,
       jsonSchema(),
       EditorView.updateListener.of((update) => {
@@ -98,7 +98,7 @@ const editor = new EditorView({
 window._cmEditor = editor;
 window._cmSetDark = (dark) => {
   editor.dispatch({
-    effects: themeCompartment.reconfigure(dark ? materialDark : materialLight),
+    effects: themeCompartment.reconfigure(dark ? vsCodeDark : vsCodeLight),
   });
 };
 loadSchemaFromDoc(editor);

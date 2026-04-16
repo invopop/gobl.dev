@@ -9,6 +9,15 @@ document.addEventListener("alpine:init", () => {
     // Counter so each successful build creates a fresh FlashMessage.
     success: 0,
 
+    init() {
+      window.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          this.build();
+        }
+      });
+    },
+
     async build() {
       const ed = window._cmEditor;
       if (!ed) return;
@@ -35,9 +44,19 @@ document.addEventListener("alpine:init", () => {
         }
 
         const pretty = JSON.stringify(result, null, 2);
+        const scrollTop = ed.scrollDOM.scrollTop;
+        const { anchor, head } = ed.state.selection.main;
         ed.dispatch({
           changes: { from: 0, to: ed.state.doc.length, insert: pretty },
+          selection: {
+            anchor: Math.min(anchor, pretty.length),
+            head: Math.min(head, pretty.length),
+          },
         });
+        requestAnimationFrame(() => {
+          ed.scrollDOM.scrollTop = scrollTop;
+        });
+        ed.focus();
         this.success++;
       } catch (e) {
         this.error = { message: e.message };

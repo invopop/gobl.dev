@@ -143,6 +143,7 @@ func Page() templ.Component {
 					Attributes: templ.Attributes{
 						"@click":    "build()",
 						":disabled": "loading",
+						"title":     "Build (⌘/Ctrl+Enter)",
 					},
 				}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
@@ -206,8 +207,8 @@ func Page() templ.Component {
 				{Name: "codemirror", URL: "https://esm.sh/codemirror@6.0.1"},
 				{Name: "@codemirror/state", URL: "https://esm.sh/@codemirror/state@6"},
 				{Name: "codemirror-json-schema", URL: "https://esm.sh/@invopop/codemirror-json-schema@0.9.3"},
-				{Name: "@fsegurai/codemirror-theme-material-light", URL: "https://esm.sh/@fsegurai/codemirror-theme-material-light@6"},
-				{Name: "@fsegurai/codemirror-theme-material-dark", URL: "https://esm.sh/@fsegurai/codemirror-theme-material-dark@6"},
+				{Name: "@fsegurai/codemirror-theme-vscode-light", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-light@6"},
+				{Name: "@fsegurai/codemirror-theme-vscode-dark", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-dark@6"},
 			},
 			Modules: []props.Module{
 				{Src: path.Join(AssetPath, popui.Versioned(editorAssets, "editor.js"))},

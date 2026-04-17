@@ -1,8 +1,12 @@
 name: Update GOBL
 
 on:
-  repository_dispatch:
-    types: [gobl-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "GOBL version to update to (e.g. v0.401.0). Leave blank for latest."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -18,9 +22,23 @@ jobs:
         with:
           go-version-file: "go.mod"
 
+      - name: Resolve version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION=$(gh release view --repo invopop/gobl --json tagName -q .tagName)
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
+
       - name: Update GOBL dependency
         run: |
-          go get github.com/invopop/gobl@${{ github.event.client_payload.version }}
+          go get github.com/invopop/gobl@${{ steps.version.outputs.version }}
           go mod tidy
 
       - name: Verify build
@@ -29,10 +47,10 @@ jobs:
       - name: Create pull request
         uses: peter-evans/create-pull-request@v7
         with:
-          title: "Update GOBL to ${{ github.event.client_payload.version }}"
+          title: "Update GOBL to ${{ steps.version.outputs.version }}"
           body: |
-            Automated update triggered by a new GOBL release.
+            Manual update triggered via workflow_dispatch.
 
-            **Version:** `${{ github.event.client_payload.version }}`
-          branch: "deps/gobl-${{ github.event.client_payload.version }}"
-          commit-message: "Update GOBL to ${{ github.event.client_payload.version }}"
+            **Version:** `${{ steps.version.outputs.version }}`
+          branch: "deps/gobl-${{ steps.version.outputs.version }}"
+          commit-message: "Update GOBL to ${{ steps.version.outputs.version }}"

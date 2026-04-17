@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/a-h/templ v0.3.1001
-	github.com/invopop/gobl v0.400.2-0.20260416155541-e2bb0a3ecb7a
+	github.com/invopop/gobl v0.401.0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 )

@@ -46,10 +46,18 @@ archives:
       - none*
     wrap_in_directory: false
 
-# To also push the wasm to the cdn.gobl.org CDN (Cloudflare R2), re-add a
-# `blobs:` section with an `s3` provider and set AWS_ACCESS_KEY_ID /
-# AWS_SECRET_ACCESS_KEY secrets on this repo. Omitted here so releases run
-# without extra credentials; the wasm is still attached to the GitHub Release.
+blobs:
+  # Upload wasm to Cloudflare R2 (cdn.gobl.org). Requires AWS_ACCESS_KEY_ID /
+  # AWS_SECRET_ACCESS_KEY secrets on this repo (passed to GoReleaser by the
+  # release-cli workflow).
+  - provider: s3
+    bucket: cdn-gobl-org
+    region: auto
+    endpoint: "https://1791095f8859b90cf7717568b61e76a5.eu.r2.cloudflarestorage.com"
+    directory: "cli"
+    ids:
+      - wasm
+      - wasm-gz
 
 checksum:
   name_template: "checksums.txt"

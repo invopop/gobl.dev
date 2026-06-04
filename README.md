@@ -4,6 +4,16 @@ The home for [GOBL](https://github.com/invopop/gobl) (Go Business Language)
 tooling: a command-line interface and a web/API server, built on the core GOBL
 library with the full addon set bundled in.
 
+Released under the Apache 2.0 [LICENSE](https://github.com/invopop/gobl.dev/blob/main/LICENSE), Copyright 2026 [Invopop S.L.](https://invopop.com).
+
+[![Lint](https://github.com/invopop/gobl.dev/actions/workflows/lint.yaml/badge.svg)](https://github.com/invopop/gobl.dev/actions/workflows/lint.yaml)
+[![Test Go](https://github.com/invopop/gobl.dev/actions/workflows/test.yaml/badge.svg)](https://github.com/invopop/gobl.dev/actions/workflows/test.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/invopop/gobl.dev)](https://goreportcard.com/report/github.com/invopop/gobl.dev)
+[![codecov](https://codecov.io/gh/invopop/gobl.dev/graph/badge.svg)](https://codecov.io/gh/invopop/gobl.dev)
+[![GoDoc](https://godoc.org/github.com/invopop/gobl.dev?status.svg)](https://godoc.org/github.com/invopop/gobl.dev)
+![Latest Tag](https://img.shields.io/github/v/tag/invopop/gobl.dev)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/invopop/gobl.dev)
+
 Core GOBL is a pure document library. This project composes it with every
 GOBL addon (see [`bundle/`](./bundle)) and ships two binaries:
 

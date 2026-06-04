@@ -23,7 +23,10 @@ jobs:
   publish:
     name: Publish gobl-worker
     # Run on a successful upstream Release CLI, or whenever triggered manually.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # The workflow_run case is restricted to the `main` branch so this
+    # privileged job (id-token: write) only ever builds trusted code — Release
+    # CLI itself only runs on main, so head_sha is always a main commit.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -34,6 +37,8 @@ jobs:
           # Pin to the commit the Release CLI ran against so we publish the
           # matching version; falls back to the selected ref for dispatch.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          # Don't expose the git token to the build scripts we run below.
+          persist-credentials: false
 
       - name: Resolve released version
         id: version

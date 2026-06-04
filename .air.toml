@@ -3,8 +3,8 @@ tmp_dir = "tmp"
 
 [build]
 args_bin = []
-bin = "./tmp/gobl-dev"
-cmd = "templ generate && go build -o ./tmp/gobl-dev ."
+bin = "./tmp/gobl.dev"
+cmd = "templ generate && go build -o ./tmp/gobl.dev ./cmd/gobl.dev"
 delay = 1000
 exclude_dir = ["tmp", "vendor"]
 exclude_file = []

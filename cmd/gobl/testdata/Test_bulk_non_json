@@ -1,0 +1,8 @@
+{
+	"seq_id": 1,
+	"error": {
+		"key": "input",
+		"message": "invalid character 'o' in literal null (expecting 'u')"
+	},
+	"is_final": true
+}

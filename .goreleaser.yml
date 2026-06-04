@@ -1,0 +1,71 @@
+version: 2
+before:
+  hooks:
+    - go mod download
+builds:
+  - id: gobl.cli
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    main: ./cmd/gobl
+    binary: gobl
+  - id: gobl.wasm
+    goos:
+      - js
+    main: ./wasm
+    binary: gobl.wasm
+    goarch:
+      - "wasm"
+archives:
+  - id: cli
+    ids:
+      - gobl.cli
+    formats:
+      - tar.gz
+    name_template: "gobl.{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    wrap_in_directory: true
+  - id: wasm
+    ids:
+      - gobl.wasm
+    formats:
+      - binary
+    name_template: "gobl.{{ .Version }}"
+    files:
+      - none*
+    wrap_in_directory: false
+  - id: wasm-gz
+    ids:
+      - gobl.wasm
+    formats:
+      - gz
+    name_template: "gobl.{{ .Version }}.wasm"
+    files:
+      - none*
+    wrap_in_directory: false
+
+# To also push the wasm to the cdn.gobl.org CDN (Cloudflare R2), re-add a
+# `blobs:` section with an `s3` provider and set AWS_ACCESS_KEY_ID /
+# AWS_SECRET_ACCESS_KEY secrets on this repo. Omitted here so releases run
+# without extra credentials; the wasm is still attached to the GitHub Release.
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ .Tag }}"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  github:
+    owner: invopop
+    name: gobl.dev
+  prerelease: auto

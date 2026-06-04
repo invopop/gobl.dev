@@ -1,0 +1,99 @@
+#
+# Fully-automated release of the GOBL CLI and wasm. On every push to main it
+# bumps the semver tag (patch by default; use #minor / #major in a commit
+# message to bump further), then:
+#   - builds and publishes the `gobl` CLI and the wasm binary as GitHub
+#     Release assets via GoReleaser, and
+#   - publishes the gobl-worker npm package (OIDC trusted publishing).
+#
+name: Release CLI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write # npm OIDC trusted publishing
+  contents: write # create tags and releases
+
+concurrency:
+  group: release-cli
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release CLI & wasm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: "0" # all commits, for semver + changelog
+
+      - name: Bump version and push tag
+        id: tag
+        uses: anothrNick/github-tag-action@1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: "true"
+          RELEASE_BRANCHES: main
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      # wasm_exec.js is gitignored; copy it from the active Go install so the
+      # worker build can bundle it.
+      - name: Copy Go WASM Exec
+        run: cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" ./wasm/worker/src
+
+      - name: Run GoReleaser (CLI + wasm)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Install gobl-worker deps
+        working-directory: ./wasm/worker
+        run: npm ci
+
+      - name: Set gobl-worker version
+        working-directory: ./wasm/worker
+        run: npm version --no-git-tag-version ${{ steps.tag.outputs.new_tag }}
+
+      - name: Build gobl-worker
+        working-directory: ./wasm/worker
+        run: npm run build
+
+      # npm refuses to publish a prerelease to the default `latest` dist-tag;
+      # derive `rc`/`beta`/etc. from the version, otherwise `latest`.
+      - name: Determine npm dist-tag
+        id: npm-tag
+        run: |
+          v="${{ steps.tag.outputs.new_tag }}"
+          if [[ "$v" =~ -([a-z]+) ]]; then
+            tag="${BASH_REMATCH[1]}"
+          else
+            tag="latest"
+          fi
+          echo "Using npm dist-tag: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      # npx fetches npm 11 (required for OIDC trusted publishing) without
+      # touching the global install.
+      - name: Publish gobl-worker to NPM
+        working-directory: ./wasm/worker
+        run: npx -y npm@11 publish --tag ${{ steps.npm-tag.outputs.tag }}

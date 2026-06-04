@@ -8,8 +8,10 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 
+	"github.com/invopop/gobl"
 	"github.com/spf13/cobra"
 
 	// Register the full GOBL addon set (see bundle/bundle.go).
@@ -21,14 +23,6 @@ var (
 	version = "dev"
 	date    = ""
 )
-
-var versionOutput = struct {
-	Version string `json:"version"`
-	Date    string `json:"date,omitempty"`
-}{
-	Version: version,
-	Date:    date,
-}
 
 func main() {
 	if err := run(); err != nil {
@@ -55,11 +49,52 @@ func versionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use: "version",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			out := struct {
+				Version string `json:"version"`        // this gobl.dev / CLI release
+				Core    string `json:"core"`           // the github.com/invopop/gobl it was built against
+				Date    string `json:"date,omitempty"` // build date
+			}{
+				Version: cliVersion(),
+				Core:    coreVersion(),
+				Date:    date,
+			}
 			enc := json.NewEncoder(cmd.OutOrStdout())
 			enc.SetIndent("", "\t") // always indent version
-			return enc.Encode(versionOutput)
+			return enc.Encode(out)
 		},
 	}
+}
+
+// cliVersion returns the gobl.dev CLI release: the ldflags value when built by
+// mage/goreleaser, otherwise the module version recorded in the build info.
+func cliVersion() string {
+	if version != "" && version != "dev" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		return bi.Main.Version
+	}
+	return version
+}
+
+// coreVersion returns the version of github.com/invopop/gobl this binary was
+// built against, taken from the build info (honouring any replace), and falling
+// back to the version baked into the core library.
+func coreVersion() string {
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		for _, d := range bi.Deps {
+			if d.Path != "github.com/invopop/gobl" {
+				continue
+			}
+			if d.Replace != nil && d.Replace.Version != "" {
+				return d.Replace.Version
+			}
+			if d.Version != "" && d.Version != "(devel)" {
+				return d.Version
+			}
+		}
+	}
+	return string(gobl.VERSION)
 }
 
 func encode(in any, out io.WriteCloser, indent bool) error {

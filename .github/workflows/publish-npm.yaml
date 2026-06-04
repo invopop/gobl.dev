@@ -1,0 +1,93 @@
+#
+# Publish the gobl-worker package to NPM. Runs automatically after a
+# successful Release CLI run, and can be re-run manually (workflow_dispatch)
+# to retry a failed publish without re-running the full release.
+#
+# Authentication is via NPM Trusted Publisher (OIDC) — no secret needed.
+# `id-token: write` lets the runner exchange its GitHub OIDC token for a
+# short-lived npm publish token.
+#
+name: Publish NPM
+
+on:
+  workflow_run:
+    workflows: ["Release CLI"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    name: Publish gobl-worker
+    # Run on a successful upstream Release CLI, or whenever triggered manually.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: "0" # need tags to resolve the released version
+          # Pin to the commit the Release CLI ran against so we publish the
+          # matching version; falls back to the selected ref for dispatch.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Resolve released version
+        id: version
+        run: |
+          version="$(git describe --tags --abbrev=0)"
+          echo "Publishing gobl-worker $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      # wasm_exec.js is gitignored; copy it from the active Go install before
+      # the npm build bundles it into the package.
+      - name: Copy Go WASM Exec
+        run: cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" ./wasm/worker/src
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          # Intentionally no `registry-url`: setup-node would otherwise write
+          # a `.npmrc` with an `_authToken` entry that forces token auth and
+          # blocks the OIDC trusted-publisher exchange.
+
+      - name: Install gobl-worker deps
+        working-directory: ./wasm/worker
+        run: npm ci
+
+      - name: Set gobl-worker version
+        working-directory: ./wasm/worker
+        run: npm version --no-git-tag-version ${{ steps.version.outputs.version }}
+
+      - name: Build gobl-worker
+        working-directory: ./wasm/worker
+        run: npm run build
+
+      # npm refuses to publish a prerelease (e.g. v1.2.3-rc1) to the default
+      # `latest` dist-tag; derive `rc`/`beta`/etc. from the version, else `latest`.
+      - name: Determine npm dist-tag
+        id: npm-tag
+        run: |
+          v="${{ steps.version.outputs.version }}"
+          if [[ "$v" =~ -([a-z]+) ]]; then
+            tag="${BASH_REMATCH[1]}"
+          else
+            tag="latest"
+          fi
+          echo "Using npm dist-tag: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      # npx fetches npm 11 (required for OIDC trusted publishing) without
+      # touching the global install.
+      - name: Publish gobl-worker to NPM
+        working-directory: ./wasm/worker
+        run: npx -y npm@11 publish --tag ${{ steps.npm-tag.outputs.tag }}

@@ -3,9 +3,13 @@
 # successful Release CLI run, and can be re-run manually (workflow_dispatch)
 # to retry a failed publish without re-running the full release.
 #
-# Authentication is via NPM Trusted Publisher (OIDC) — no secret needed.
-# `id-token: write` lets the runner exchange its GitHub OIDC token for a
-# short-lived npm publish token.
+# Split into two jobs so the privileged publish never executes repository
+# code (CodeQL "untrusted checkout in a privileged context"):
+#   - build:   unprivileged (contents: read, no id-token / secrets). Checks
+#              out the released commit, builds the package, and packs a tarball.
+#   - publish: privileged (id-token: write for NPM OIDC trusted publishing).
+#              Only downloads the pre-built tarball and publishes it with
+#              --ignore-scripts; it never checks out or runs repo code.
 #
 name: Publish NPM
 
@@ -16,35 +20,34 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
 
 jobs:
-  publish:
-    name: Publish gobl-worker
-    # Run on a successful upstream Release CLI, or whenever triggered manually.
-    # The workflow_run case is restricted to the `main` branch so this
-    # privileged job (id-token: write) only ever builds trusted code — Release
-    # CLI itself only runs on main, so head_sha is always a main commit.
+  build:
+    name: Build gobl-worker
+    # Run on a successful upstream Release CLI (restricted to main, the only
+    # branch Release CLI runs on), or whenever triggered manually.
     if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read # no secrets / id-token here, so building the code is safe
+    outputs:
+      tag: ${{ steps.npm-tag.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: "0" # need tags to resolve the released version
-          # Pin to the commit the Release CLI ran against so we publish the
-          # matching version; falls back to the selected ref for dispatch.
+          # Pin to the commit Release CLI ran against; fall back to the
+          # selected ref for manual dispatch.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
-          # Don't expose the git token to the build scripts we run below.
           persist-credentials: false
 
       - name: Resolve released version
         id: version
         run: |
           version="$(git describe --tags --abbrev=0)"
-          echo "Publishing gobl-worker $version"
+          echo "Building gobl-worker $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
@@ -53,7 +56,7 @@ jobs:
           go-version-file: "go.mod"
 
       # wasm_exec.js is gitignored; copy it from the active Go install before
-      # the npm build bundles it into the package.
+      # the npm build bundles it.
       - name: Copy Go WASM Exec
         run: cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" ./wasm/worker/src
 
@@ -61,24 +64,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-          # Intentionally no `registry-url`: setup-node would otherwise write
-          # a `.npmrc` with an `_authToken` entry that forces token auth and
-          # blocks the OIDC trusted-publisher exchange.
 
-      - name: Install gobl-worker deps
+      - name: Build and pack gobl-worker
         working-directory: ./wasm/worker
-        run: npm ci
+        run: |
+          npm ci
+          npm version --no-git-tag-version "${{ steps.version.outputs.version }}"
+          npm run build
+          npm pack
 
-      - name: Set gobl-worker version
-        working-directory: ./wasm/worker
-        run: npm version --no-git-tag-version ${{ steps.version.outputs.version }}
-
-      - name: Build gobl-worker
-        working-directory: ./wasm/worker
-        run: npm run build
-
-      # npm refuses to publish a prerelease (e.g. v1.2.3-rc1) to the default
-      # `latest` dist-tag; derive `rc`/`beta`/etc. from the version, else `latest`.
+      # npm refuses to publish a prerelease to the default `latest` dist-tag;
+      # derive `rc`/`beta`/etc. from the version, else `latest`.
       - name: Determine npm dist-tag
         id: npm-tag
         run: |
@@ -91,8 +87,36 @@ jobs:
           echo "Using npm dist-tag: $tag"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      - name: Upload package tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: gobl-worker-pkg
+          path: ./wasm/worker/*.tgz
+          if-no-files-found: error
+
+  publish:
+    name: Publish to NPM
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # NPM OIDC trusted publishing
+      contents: read
+    steps:
+      - name: Download package tarball
+        uses: actions/download-artifact@v4
+        with:
+          name: gobl-worker-pkg
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          # Intentionally no `registry-url`: setup-node would otherwise write
+          # a `.npmrc` with an `_authToken` entry that blocks the OIDC
+          # trusted-publisher exchange.
+
       # npx fetches npm 11 (required for OIDC trusted publishing) without
-      # touching the global install.
-      - name: Publish gobl-worker to NPM
-        working-directory: ./wasm/worker
-        run: npx -y npm@11 publish --tag ${{ steps.npm-tag.outputs.tag }}
+      # touching the global install. The prebuilt tarball is published with
+      # scripts disabled, so no repository code runs in this privileged job.
+      - name: Publish to NPM
+        run: npx -y npm@11 publish ./*.tgz --tag "${{ needs.build.outputs.tag }}" --ignore-scripts

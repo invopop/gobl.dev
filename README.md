@@ -43,7 +43,11 @@ Commands:
 | `gobl sign` | Sign an envelope with a JWK private key. |
 | `gobl verify` | Verify an envelope's signatures. |
 | `gobl replicate` | Clone a document with a fresh UUID. |
-| `gobl keygen` | Generate an ES256 key pair. |
+| `gobl keygen` | Generate an ES256 key pair. *(Deprecated: prefer `gobl init`.)* |
+| `gobl init` | Scaffold a GOBL Net domain identity under `~/.config/gobl/<domain>/` (keypair + party template). See [GOBL Net](#gobl-net). |
+| `gobl net who` | Authenticated mutual party exchange with a remote GOBL Net address. |
+| `gobl net send` | POST a signed envelope to a remote `/inbox`. |
+| `gobl net serve` | Run the GOBL Net HTTPS server (keys + `/who` + `/inbox` + bulk JWKS). |
 | `gobl serve` | Launch the HTTP API server (see [API](#http-api)). |
 | `gobl mcp` | Launch a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio for AI tools and editors. |
 | `gobl version` | Print the version. |
@@ -128,6 +132,182 @@ workflow attaches the wasm build to each GitHub Release, uploads it to
 [`bundle/bundle.go`](./bundle/bundle.go) is the single place that declares which
 addons the binaries ship with — one blank import per addon module. Add an
 approved addon there and both `gobl` and `gobl.dev` pick it up.
+
+## GOBL Net
+
+> ⚠️ **EXPERIMENTAL** — GOBL Net is under active development. The CLI
+> commands, on-disk layout, and the wire protocol may change without notice.
+
+GOBL Net is a decentralised identity-and-discovery protocol for signed GOBL
+documents: a signer's identity is an FQDN (e.g. `billing.invopop.com`), and
+verifying keys, an endorsed identity, and a delivery inbox are all served
+from well-known HTTPS endpoints at that domain. The protocol itself lives in
+the core library at
+[`github.com/invopop/gobl/net`](https://github.com/invopop/gobl/blob/net/net/README.md) —
+that file is the authoritative spec for addresses, the signed `iss`/`aud`/`iat`
+payload, the per-key and JWKS endpoints, `/who`, and `/inbox`. This section
+covers only the CLI / server side.
+
+### `gobl init <domain>`
+
+Scaffolds a per-domain identity under `~/.config/gobl/<domain>/`:
+
+```
+~/.config/gobl/billing.invopop.com/
+├── private.jwk                              ← active signing key (0600)
+├── keys/<kid>.json                          ← published JWK (stamped valid_from=now)
+├── party.json                               ← party template with a pre-filled gobl: endpoint
+├── allow.json                               ← optional: gates /who and /inbox by signer
+└── inbox/                                   ← envelopes received over /inbox land here
+```
+
+Flags: `--config-dir`, `--force`, `--name`. Rotation is just filesystem ops:
+drop a new `<kid>.json` to publish a key, set `valid_until` on a file to
+retire it, `rm` to remove it (future requests for that `kid` return `404`).
+
+### `gobl sign --domain X [--to Y]`
+
+Signs with the key from `~/.config/gobl/<X>/` and stamps `iss=gobl:X` /
+`aud=gobl:Y` into the signed payload (alongside `uuid`, `dig`, and `iat`).
+
+### `gobl verify`
+
+Two flags activate remote verification:
+
+- `-a, --address <fqdn>` — require the verified `iss` to equal this address.
+- `-r, --remote` — fetch the verifying key from the issuer published in the
+  signed `iss`, via `<iss>/.well-known/gobl/keys/<kid>`.
+
+### `gobl net who <address> --from <domain>`
+
+Authenticated mutual party exchange: POSTs a signed request (`iss=gobl:from`,
+`aud=gobl:address`) and prints the target's verified `org.Party` envelope —
+including any authority countersignatures the target serves alongside its
+self-signature.
+
+### `gobl net send <envelope> --to <fqdn>`
+
+Reads a signed envelope from a file (or stdin), POSTs it to the destination's
+`/inbox`. Exits 0 on `202 Accepted`; otherwise `ErrInboxRejected`.
+
+- `--insecure` — use `http://` and permit `host:port` form in `--to`
+  (development only).
+
+### `gobl net serve`
+
+Runs the HTTPS server. Always listens on an HTTP port (default 80); when a
+TLS source is configured it also listens on the HTTPS port (default 443),
+serving identical content — no redirect, senders choose the scheme.
+
+**Multi-tenant.** Auto-discovers every `<config-dir>/<domain>/` directory and
+routes by HTTP `Host`. `--domain` restricts to one; `--party` + `--keys-dir`
+selects a single manual identity. ACME issues for every discovered domain.
+
+**Startup checks** (each is a hard error with a clear message):
+
+- If neither `keys/` nor `private.jwk` exists, the server generates an ECDSA
+  P-256 keypair, writes `private.jwk` (0600) and `keys/<kid>.json` (with
+  `valid_from = now`), and logs the new kid + paths.
+- Every file in `keys/` MUST be named `<kid>.json` where `kid` equals the
+  JWK's `kid` field. Non-`.json` entries and subdirectories are ignored.
+- The active `private.jwk`'s `kid` MUST be one of the published kids.
+- The party envelope MUST contain at least one signature whose `kid` is
+  published and which verifies against that key. Endorser signatures are
+  allowed alongside.
+
+**Ports:**
+
+- `--http-port <int>` (default 80)
+- `--https-port <int>` (default 443; only used with a TLS source)
+
+**TLS sources (mutually exclusive):**
+
+- `--acme-live` — Let's Encrypt production. Recommended: `--acme-email`.
+- `--acme-test` — Let's Encrypt staging (untrusted certs; use during
+  iteration to dodge production rate limits).
+- `--tls-cert <path>` + `--tls-key <path>` — operator-supplied PEM cert/key.
+
+ACME options:
+
+- `--domain <fqdn>` — hostname the ACME client is allowed to issue for; MUST
+  match the participant's GOBL Net address. Optional: when omitted, derived
+  from the party's `gobl:` endpoint (`org.Party.endpoints[?(@.uri ~ /^gobl:/)]`).
+- `--acme-email <email>` — ACME account email (recommended by LE). Optional:
+  derived from the party's first `org.Party.emails` entry when omitted.
+- `--cert-dir <path>` — directory used to cache ACME-issued certs (default
+  `<config-dir>/certs/`).
+
+Explicit flags always override party-derived values.
+
+**Operational stances:**
+
+| Stance                                          | Listens on   | Use when                                          |
+|-------------------------------------------------|--------------|---------------------------------------------------|
+| default (no TLS flags)                          | HTTP only    | Behind a reverse proxy that terminates TLS.       |
+| `--acme-live` / `--acme-test` + `--domain`      | HTTP + HTTPS | Direct internet exposure; LE manages the cert.    |
+| `--tls-cert` + `--tls-key`                      | HTTP + HTTPS | Cert is sourced elsewhere (corporate CA, …).      |
+
+**Docker:**
+
+```bash
+docker run \
+    -p 80:80 -p 443:443 \
+    -v gobl-config:/root/.config/gobl \
+    gobl net serve
+```
+
+For unprivileged containers, pick high ports inside and remap:
+
+```bash
+docker run \
+    -p 80:8080 -p 443:8443 \
+    -v gobl-config:/home/gobl/.config/gobl \
+    gobl net serve --http-port 8080 --https-port 8443
+```
+
+**ACME operational sequence:** start → challenge (HTTP-01 on the HTTP port,
+TLS-ALPN-01 fallback on the HTTPS port) → cert issued + cached → ready. If
+the public internet can't reach the configured `--domain`, the challenge
+fails and the server logs a clear error. Successful issuance doubles as a
+reachability check.
+
+### Logging
+
+All operator-facing log output goes through `log/slog` and is written to
+**stderr**. Result output (signed envelopes, the `/who` party JSON,
+`gobl version`'s JSON) stays on **stdout**, so a pipeline like
+`gobl sign … | gobl net send …` is unaffected.
+
+The top-level `--json` flag toggles the format:
+
+| flag      | stderr format        | example                                                        |
+|-----------|----------------------|----------------------------------------------------------------|
+| (default) | slog text            | `time=… level=INFO msg=listening scheme=http addr=:8080`       |
+| `--json`  | slog JSON-per-line   | `{"time":"…","level":"INFO","msg":"listening","scheme":"http","addr":":8080"}` |
+
+**Startup messages (`gobl net serve`):** `generated keypair`
+(fields: `kid`, `private`, `key_file`); `initialised domain` (`domain`,
+`party`, `inbox`); `GOBL Net listening` (`scheme`, `addr`); `ACME enabled`
+(`domains`); `Shutting down`.
+
+**HTTP access logs** — one baseline entry plus handler-specific ones:
+
+| msg                  | level | fields                                                                            |
+|----------------------|-------|-----------------------------------------------------------------------------------|
+| `http_request`       | INFO  | `method`, `path`, `host`, `remote`, `status`, `duration_ms`                       |
+| `keys.lookup`        | INFO  | `kid`, `found`                                                                    |
+| `jwks.served`        | INFO  | `count`                                                                           |
+| `who.exchange`       | INFO  | `caller` (verified `iss` as FQDN)                                                 |
+| `who.rejected`       | WARN  | `reason` (`bad_body`/`verify_failed`/`not_allowed`), `remote`/`caller`/`error`    |
+| `inbox.accepted`     | INFO  | `caller`, `envelope` (UUID)                                                       |
+| `inbox.rejected`     | WARN  | `reason` (`bad_body`/`validation`/`verify_failed`/`aud_mismatch`/`not_allowed`)   |
+| `inbox.write_failed` | ERROR | `caller`, `envelope`, `error`                                                     |
+
+**Error reporting.** A CLI command that fails emits a single `command failed`
+entry on stderr with `key=<gobl-error-key>` and (when present) `message=…`
+and `faults=…`. With `--json` the same fields appear as a JSON object.
+Successful commands write no log output and their result still lands on
+stdout.
 
 ## Project structure
 

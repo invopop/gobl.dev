@@ -1,0 +1,45 @@
+{
+  "$schema": "https://gobl.org/draft-0/bill/invoice",
+  "currency": "GBP",
+  "issue_date": "2026-01-15",
+  "series": "SAMPLE",
+  "code": "001",
+  "supplier": {
+    "name": "Provide One Ltd.",
+    "tax_id": {
+      "country": "GB",
+      "code": "844281425"
+    },
+    "addresses": [
+      {
+        "num": "10",
+        "street": "King's Road",
+        "locality": "London",
+        "code": "SW3 4UD",
+        "country": "GB"
+      }
+    ]
+  },
+  "customer": {
+    "name": "Sample Customer",
+    "tax_id": {
+      "country": "GB"
+    }
+  },
+  "lines": [
+    {
+      "quantity": "20",
+      "item": {
+        "name": "Development services",
+        "price": "90.00",
+        "unit": "h"
+      },
+      "taxes": [
+        {
+          "cat": "VAT",
+          "percent": "20%"
+        }
+      ]
+    }
+  ]
+}

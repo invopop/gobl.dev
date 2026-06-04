@@ -1,0 +1,61 @@
+{
+  "$schema": "https://gobl.org/draft-0/bill/invoice",
+  "$addons": ["fr-facturx-v1"],
+  "currency": "EUR",
+  "issue_date": "2026-01-15",
+  "series": "SAMPLE",
+  "code": "001",
+  "supplier": {
+    "name": "Provide One SAS",
+    "tax_id": {
+      "country": "FR",
+      "code": "44732829320"
+    },
+    "emails": [{"addr": "billing@example.com"}],
+    "addresses": [
+      {
+        "num": "1",
+        "street": "Rue de Rivoli",
+        "locality": "Paris",
+        "code": "75001",
+        "country": "FR"
+      }
+    ]
+  },
+  "customer": {
+    "name": "Sample Consumer",
+    "tax_id": {
+      "country": "FR",
+      "code": "356000000"
+    },
+    "emails": [{"addr": "email@sample.com"}],
+    "addresses": [
+      {
+        "num": "1",
+        "street": "Rue Sundacsakn",
+        "locality": "Saint-Germain-En-Laye",
+        "code": "75050",
+        "country": "FR"
+      }
+    ]
+  },
+  "lines": [
+    {
+      "quantity": "20",
+      "item": {
+        "name": "Development services",
+        "price": "90.00"
+      },
+      "discounts": [
+        {"percent": "10%", "reason": "Special discount"}
+      ],
+      "taxes": [
+        {"cat": "VAT", "percent": "20%"}
+      ]
+    }
+  ],
+  "payment": {
+    "instructions": {"key": "card"},
+    "terms": {"detail": "Please pay within 10 days"}
+  }
+}

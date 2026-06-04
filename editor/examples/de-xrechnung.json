@@ -1,0 +1,78 @@
+{
+  "$schema": "https://gobl.org/draft-0/bill/invoice",
+  "$addons": ["de-xrechnung-v3"],
+  "currency": "EUR",
+  "issue_date": "2026-01-15",
+  "series": "SAMPLE",
+  "code": "001",
+  "supplier": {
+    "name": "Provide One GmbH",
+    "tax_id": {
+      "country": "DE",
+      "code": "111111125"
+    },
+    "inboxes": [
+      {"email": "billing@example.com"}
+    ],
+    "people": [
+      {
+        "name": {"given": "John", "surname": "Doe"},
+        "emails": [{"addr": "billing@example.com"}]
+      }
+    ],
+    "addresses": [
+      {
+        "num": "16",
+        "street": "Dietmar-Hopp-Allee",
+        "locality": "Walldorf",
+        "code": "69190",
+        "country": "DE"
+      }
+    ],
+    "telephones": [{"num": "+49100200300"}]
+  },
+  "customer": {
+    "name": "Sample Consumer",
+    "tax_id": {
+      "country": "DE",
+      "code": "282741168"
+    },
+    "inboxes": [
+      {"email": "billing@example.com"}
+    ],
+    "emails": [{"addr": "email@sample.com"}],
+    "addresses": [
+      {
+        "num": "25",
+        "street": "Werner-Heisenberg-Allee",
+        "locality": "München",
+        "code": "80939",
+        "country": "DE"
+      }
+    ],
+    "telephones": [{"num": "+49100200300"}]
+  },
+  "lines": [
+    {
+      "quantity": "20",
+      "item": {
+        "name": "Development services",
+        "price": "90.00",
+        "unit": "h"
+      },
+      "taxes": [
+        {"cat": "VAT", "rate": "standard"}
+      ]
+    }
+  ],
+  "ordering": {"code": "12345"},
+  "payment": {
+    "instructions": {
+      "key": "credit-transfer+sepa",
+      "credit_transfer": [
+        {"iban": "DE89370400440532013000", "name": "Random Bank Co."}
+      ]
+    },
+    "terms": {"detail": "Please pay within 10 days"}
+  }
+}

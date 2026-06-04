@@ -1,7 +1,14 @@
-/* CodeMirror container sizing */
+/* Split container */
 #editor-container {
   flex: 1;
   overflow: hidden;
+}
+#editor-pane,
+#viewer-pane {
+  overflow: hidden;
+}
+#viewer-xml {
+  height: 100%;
 }
 .cm-editor {
   height: 100%;

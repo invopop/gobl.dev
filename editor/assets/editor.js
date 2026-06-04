@@ -1,53 +1,23 @@
 // editor.js -- ES module for GOBL Editor
-// Initializes CodeMirror with JSON schema support.
+// Initializes the main editing CodeMirror and a read-only XML viewer.
+// window._cmReady + window._cmReadyResolve are created by an inline script
+// in <head>; this module resolves the promise once CodeMirror is mounted.
 
 import { basicSetup, EditorView } from "codemirror";
 import { EditorState, Compartment } from "@codemirror/state";
 import { vsCodeLight } from "@fsegurai/codemirror-theme-vscode-light";
 import { vsCodeDark } from "@fsegurai/codemirror-theme-vscode-dark";
 
-// Theme compartment allows dynamic reconfiguration.
-const themeCompartment = new Compartment();
+// Compartments allow dynamic reconfiguration.
+const editorThemeCompartment = new Compartment();
+const viewerThemeCompartment = new Compartment();
 
 function isDark() {
   return document.documentElement.classList.contains("dark");
 }
 
-const defaultDoc = JSON.stringify(
-  {
-    $schema: "https://gobl.org/draft-0/bill/invoice",
-    currency: "USD",
-    issue_date: new Date().toISOString().slice(0, 10),
-    supplier: {
-      name: "Acme Inc.",
-      tax_id: {
-        country: "US",
-      },
-    },
-    customer: {
-      name: "Sample Customer",
-    },
-    lines: [
-      {
-        quantity: "10",
-        item: {
-          name: "Development Services",
-          price: "100.00",
-        },
-        taxes: [
-          {
-            cat: "ST",
-            percent: "8.25%",
-          },
-        ],
-      },
-    ],
-  },
-  null,
-  2,
-);
-
 const { jsonSchema, updateSchema } = await import("codemirror-json-schema");
+const { xml: xmlLang } = await import("@codemirror/lang-xml");
 
 const SCHEMA_PREFIX = "https://gobl.org/draft-0/";
 let activeSchemaURL = null;
@@ -70,15 +40,16 @@ async function loadSchemaFromDoc(view) {
   }
 }
 
-const container = document.getElementById("editor-container");
-container.replaceChildren();
+// Mount the main editor inside #editor-pane.
+const editorMount = document.getElementById("editor-pane");
+editorMount.replaceChildren();
 
 const editor = new EditorView({
   state: EditorState.create({
-    doc: defaultDoc,
+    doc: "",
     extensions: [
       basicSetup,
-      themeCompartment.of(isDark() ? vsCodeDark : vsCodeLight),
+      editorThemeCompartment.of(isDark() ? vsCodeDark : vsCodeLight),
       EditorView.lineWrapping,
       jsonSchema(),
       EditorView.updateListener.of((update) => {
@@ -92,14 +63,60 @@ const editor = new EditorView({
       }),
     ],
   }),
-  parent: container,
+  parent: editorMount,
 });
 
 window._cmEditor = editor;
-window._cmSetDark = (dark) => {
-  editor.dispatch({
-    effects: themeCompartment.reconfigure(dark ? vsCodeDark : vsCodeLight),
+
+// Lazily-created read-only viewer for XML output.
+let viewerView = null;
+
+function ensureViewer() {
+  if (viewerView) return viewerView;
+  const parent = document.getElementById("viewer-xml");
+  if (!parent) return null;
+  viewerView = new EditorView({
+    state: EditorState.create({
+      doc: "",
+      extensions: [
+        basicSetup,
+        viewerThemeCompartment.of(isDark() ? vsCodeDark : vsCodeLight),
+        EditorView.lineWrapping,
+        EditorView.editable.of(false),
+        EditorState.readOnly.of(true),
+        xmlLang(),
+      ],
+    }),
+    parent,
+  });
+  return viewerView;
+}
+
+window._cmSetViewerXML = (text) => {
+  const v = ensureViewer();
+  if (!v) return;
+  v.dispatch({
+    changes: { from: 0, to: v.state.doc.length, insert: text },
   });
 };
-loadSchemaFromDoc(editor);
 
+window._cmSetDark = (dark) => {
+  const theme = dark ? vsCodeDark : vsCodeLight;
+  editor.dispatch({
+    effects: editorThemeCompartment.reconfigure(theme),
+  });
+  if (viewerView) {
+    viewerView.dispatch({
+      effects: viewerThemeCompartment.reconfigure(theme),
+    });
+  }
+};
+
+window._cmSetEditorDoc = (text) => {
+  editor.dispatch({
+    changes: { from: 0, to: editor.state.doc.length, insert: text },
+  });
+  loadSchemaFromDoc(editor);
+};
+
+if (window._cmReadyResolve) window._cmReadyResolve();

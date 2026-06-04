@@ -1,18 +1,21 @@
 package editor
 
 import (
+	"github.com/invopop/gobl.dev/editor/examples"
 	"github.com/invopop/icons"
 	popui "github.com/invopop/popui.go"
 	"github.com/invopop/popui.go/props"
 	"path"
 )
 
-templ Page() {
+templ Page(initialExampleID string) {
 	@popui.App(props.App{
 		Title: "GOBL Editor",
 		Importmap: []props.Import{
 			{Name: "codemirror", URL: "https://esm.sh/codemirror@6.0.1"},
 			{Name: "@codemirror/state", URL: "https://esm.sh/@codemirror/state@6"},
+			{Name: "@codemirror/view", URL: "https://esm.sh/@codemirror/view@6"},
+			{Name: "@codemirror/lang-xml", URL: "https://esm.sh/@codemirror/lang-xml@6"},
 			{Name: "codemirror-json-schema", URL: "https://esm.sh/@invopop/codemirror-json-schema@0.9.3"},
 			{Name: "@fsegurai/codemirror-theme-vscode-light", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-light@6"},
 			{Name: "@fsegurai/codemirror-theme-vscode-dark", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-dark@6"},
@@ -26,12 +29,14 @@ templ Page() {
 		Scripts: []props.Script{
 			{Src: path.Join(AssetPath, popui.Versioned(editorAssets, "editor-data.js"))},
 		},
-		Head: headExtras(),
+		Head: headExtras(initialExampleID),
 		Data: "editor",
 	}) {
 		@popui.Header(props.Header{
 			Title: goblTitle(),
 		}) {
+			@examplePicker()
+			@formatPicker()
 			<template x-if="success > 0">
 				@popui.FlashMessage(props.FlashMessage{
 					Type:    "success",
@@ -86,11 +91,59 @@ templ Page() {
 					</template>
 				</details>
 			</div>
-			<div id="editor-container">
-				@editorSkeleton()
+			<div id="editor-container" class="flex flex-1 min-h-0">
+				<div id="editor-pane" class="flex-1 min-w-0 flex flex-col">
+					@editorSkeleton()
+				</div>
+				<div id="viewer-pane" x-show="format" x-cloak class="flex-1 min-w-0 border-l border-border flex flex-col">
+					<div id="viewer-content" class="flex-1 min-h-0 overflow-hidden relative">
+						<div class="absolute top-2 right-3 text-xs text-icon-default-secondary z-10" x-show="viewerLoading">Converting…</div>
+						<template x-if="viewerMode === 'html'">
+							<iframe sandbox="allow-same-origin" class="w-full h-full border-0 bg-white" :srcdoc="viewerHTML"></iframe>
+						</template>
+						<template x-if="viewerMode === 'xml'">
+							<div id="viewer-xml" class="h-full"></div>
+						</template>
+					</div>
+				</div>
 			</div>
 		}
 	}
+}
+
+templ examplePicker() {
+	<label class="flex items-center gap-2 text-sm">
+		<span class="text-icon-default-secondary">Example</span>
+		<select
+			x-model="exampleID"
+			@change="loadExample(exampleID)"
+			class="bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
+		>
+			for _, g := range examples.Grouped() {
+				<optgroup label={ g.Type }>
+					for _, e := range g.Items {
+						<option value={ e.ID }>{ e.Label }</option>
+					}
+				</optgroup>
+			}
+		</select>
+	</label>
+}
+
+templ formatPicker() {
+	<label class="flex items-center gap-2 text-sm">
+		<span class="text-icon-default-secondary">Viewer</span>
+		<select
+			x-model="format"
+			@change="onFormatChange()"
+			class="bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
+		>
+			<option value="">None</option>
+			for _, f := range formatList() {
+				<option value={ f.ID }>{ f.Label }</option>
+			}
+		</select>
+	</label>
 }
 
 templ editorSkeleton() {
@@ -122,13 +175,23 @@ templ editorSkeleton() {
 	</div>
 }
 
-templ headExtras() {
+templ headExtras(initialExampleID string) {
 	<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
 	<script>
 		if (localStorage.getItem("dark-mode") === "true") {
 			document.documentElement.classList.add("dark");
 		}
+		// Ready promise shared between editor.js (resolver) and editor-data.js
+		// (awaiter). Declared here so it exists before either of them runs —
+		// the editor module is deferred and static imports complete after
+		// alpine:init may have already fired.
+		window._cmReady = new Promise((r) => { window._cmReadyResolve = r; });
 	</script>
+	@bootstrapData(initialExampleID)
+}
+
+templ bootstrapData(initialExampleID string) {
+	@templ.JSONScript("editor-bootstrap", bootstrap(initialExampleID))
 }
 
 templ darkModeToggle() {

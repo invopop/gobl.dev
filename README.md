@@ -116,6 +116,18 @@ To embed the handler in your own server, import [`gobl.dev/api`](./api)
 (`api.NewHandler(...)`) and blank-import [`gobl.dev/bundle`](./bundle) to register
 the addons.
 
+### Editor-private routes
+
+The browser editor uses a few additional routes that are not part of the GOBL
+API surface:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/_editor/examples` | List curated starter invoices (ID, label, country, addon) |
+| `GET` | `/_editor/examples/{id}` | Raw JSON of a curated example |
+| `GET` | `/_editor/formats` | List output formats the viewer can render |
+| `POST` | `/_editor/convert?format={id}` | Convert a GOBL envelope to the requested output (UBL, CII, FatturaPA, HTML) |
+
 ## WebAssembly
 
 [`wasm/`](./wasm) compiles GOBL to WebAssembly so it can run in the browser, and

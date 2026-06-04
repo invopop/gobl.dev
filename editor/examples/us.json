@@ -1,0 +1,40 @@
+{
+  "$schema": "https://gobl.org/draft-0/bill/invoice",
+  "currency": "USD",
+  "issue_date": "2026-01-15",
+  "series": "SAMPLE",
+  "code": "001",
+  "supplier": {
+    "name": "Acme Inc.",
+    "tax_id": {
+      "country": "US"
+    },
+    "addresses": [
+      {
+        "street": "123 Market Street",
+        "locality": "San Francisco",
+        "region": "CA",
+        "code": "94103",
+        "country": "US"
+      }
+    ]
+  },
+  "customer": {
+    "name": "Sample Customer"
+  },
+  "lines": [
+    {
+      "quantity": "10",
+      "item": {
+        "name": "Development Services",
+        "price": "100.00"
+      },
+      "taxes": [
+        {
+          "cat": "ST",
+          "percent": "8.25%"
+        }
+      ]
+    }
+  ]
+}

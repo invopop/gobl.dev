@@ -1,0 +1,51 @@
+{
+  "$schema": "https://gobl.org/draft-0/bill/invoice",
+  "currency": "EUR",
+  "issue_date": "2026-01-15",
+  "series": "SAMPLE",
+  "code": "001",
+  "supplier": {
+    "name": "Provide One SAS",
+    "tax_id": {
+      "country": "FR",
+      "code": "44732829320"
+    },
+    "addresses": [
+      {
+        "num": "1",
+        "street": "Rue de Rivoli",
+        "locality": "Paris",
+        "code": "75001",
+        "country": "FR"
+      }
+    ]
+  },
+  "customer": {
+    "name": "Sample Consumer",
+    "tax_id": {
+      "country": "FR",
+      "code": "356000000"
+    },
+    "addresses": [
+      {
+        "num": "1",
+        "street": "Rue Sundacsakn",
+        "locality": "Saint-Germain-En-Laye",
+        "code": "75050",
+        "country": "FR"
+      }
+    ]
+  },
+  "lines": [
+    {
+      "quantity": "20",
+      "item": {
+        "name": "Development services",
+        "price": "90.00"
+      },
+      "taxes": [
+        {"cat": "VAT", "percent": "20%"}
+      ]
+    }
+  ]
+}

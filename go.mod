@@ -9,10 +9,14 @@ require (
 	github.com/invopop/gobl v0.502.2
 	github.com/invopop/gobl.br.nfe v0.0.1
 	github.com/invopop/gobl.br.nfse v0.0.1
+	github.com/invopop/gobl.cii v0.34.0
+	github.com/invopop/gobl.fatturapa v0.60.0
 	github.com/invopop/gobl.fr.ctc v0.0.4
+	github.com/invopop/gobl.html v0.80.0
 	github.com/invopop/gobl.mx.cfdi v0.61.0
 	github.com/invopop/gobl.pt.saft v0.0.1
 	github.com/invopop/gobl.sa.zatca v0.0.2
+	github.com/invopop/gobl.ubl v0.41.1-0.20260422220142-5fefcce8bd89
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1
@@ -30,6 +34,7 @@ require (
 	github.com/Oudwins/tailwind-merge-go v0.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/beevik/etree v1.5.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect

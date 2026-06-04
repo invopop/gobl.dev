@@ -1,0 +1,64 @@
+{
+  "$schema": "https://gobl.org/draft-0/bill/invoice",
+  "$addons": ["it-sdi-v1"],
+  "series": "FT",
+  "code": "001",
+  "currency": "EUR",
+  "issue_date": "2026-01-15",
+  "tax": {
+    "prices_include": "VAT"
+  },
+  "type": "standard",
+  "supplier": {
+    "name": "Company Name S.r.l.",
+    "tax_id": {
+      "country": "IT",
+      "code": "12345678903"
+    },
+    "registration": {
+      "capital": "50000.00",
+      "currency": "EUR",
+      "entry": "123456",
+      "office": "RM"
+    },
+    "addresses": [
+      {
+        "num": "102",
+        "street": "Via California",
+        "locality": "Palermo",
+        "region": "PA",
+        "code": "33213",
+        "country": "IT"
+      }
+    ]
+  },
+  "customer": {
+    "name": "Monica Bellucci",
+    "tax_id": {"country": "IT"},
+    "identities": [
+      {"key": "it-fiscal-code", "code": "RSSGNN60R30H501U"}
+    ],
+    "addresses": [
+      {
+        "num": "23",
+        "street": "Via dei Mille",
+        "locality": "Firenze",
+        "region": "FI",
+        "code": "00100",
+        "country": "IT"
+      }
+    ]
+  },
+  "lines": [
+    {
+      "quantity": "1",
+      "item": {
+        "name": "Cleaning services",
+        "price": "125.00"
+      },
+      "taxes": [
+        {"cat": "VAT", "rate": "standard"}
+      ]
+    }
+  ]
+}

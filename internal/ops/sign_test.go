@@ -2,12 +2,84 @@ package ops
 
 import (
 	"context"
+	"encoding/json"
 	"regexp"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/invopop/gobl"
+	"github.com/invopop/gobl/cbc"
+	"github.com/invopop/gobl/dsig"
+	"github.com/invopop/gobl/head"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/flimzy/testy"
 )
+
+const noteMessageJSON = `{"$schema":"https://gobl.org/draft-0/note/message","content":"hi"}`
+
+// signIss signs the note message with the given iss/aud and round-trips
+// the envelope through JSON (the signed payload is read after parse).
+func signIss(t *testing.T, iss, aud cbc.URI) *gobl.Envelope {
+	t.Helper()
+	env, err := Sign(context.Background(), &SignOptions{
+		ParseOptions: &ParseOptions{Input: strings.NewReader(noteMessageJSON)},
+		PrivateKey:   privateKey,
+		Iss:          iss,
+		Aud:          aud,
+	})
+	require.NoError(t, err)
+	data, err := json.Marshal(env)
+	require.NoError(t, err)
+	out := new(gobl.Envelope)
+	require.NoError(t, json.Unmarshal(data, out))
+	return out
+}
+
+func TestSignWithIss(t *testing.T) {
+	env := signIss(t, "gobl:billing.invopop.com", "gobl:acme.example")
+	require.True(t, env.Signed())
+	p, err := head.SignedPayload(env.Signatures[0])
+	require.NoError(t, err)
+	assert.Equal(t, cbc.URI("gobl:billing.invopop.com"), p.Iss)
+	assert.Equal(t, cbc.URI("gobl:acme.example"), p.Aud)
+}
+
+func TestSignWithoutIss(t *testing.T) {
+	env := signIss(t, "", "")
+	require.True(t, env.Signed())
+	p, err := head.SignedPayload(env.Signatures[0])
+	require.NoError(t, err)
+	assert.Empty(t, p.Iss)
+}
+
+func TestSignInvalidKey(t *testing.T) {
+	// Sign should propagate env.Sign's error when the private key is
+	// zero-valued (no underlying JWK).
+	_, err := Sign(context.Background(), &SignOptions{
+		ParseOptions: &ParseOptions{Input: strings.NewReader(noteMessageJSON)},
+		PrivateKey:   &dsig.PrivateKey{},
+	})
+	require.Error(t, err)
+}
+
+// TestSignSetsTimestamp asserts that signing automatically stamps the
+// signed payload with a JWT-standard `iat` (Unix seconds) close to
+// "now".
+func TestSignSetsTimestamp(t *testing.T) {
+	before := time.Now().UTC().Unix()
+	env := signIss(t, "gobl:a.example", "gobl:b.example")
+	after := time.Now().UTC().Unix()
+
+	p, err := head.SignedPayload(env.Signatures[0])
+	require.NoError(t, err)
+	require.NotZero(t, p.IssuedAt, "signing must stamp iat automatically")
+	assert.True(t,
+		p.IssuedAt >= before && p.IssuedAt <= after,
+		"iat %d should fall within [%d, %d]", p.IssuedAt, before, after,
+	)
+}
 
 func TestSign(t *testing.T) {
 	type tt struct {

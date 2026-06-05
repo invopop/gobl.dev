@@ -5,5 +5,6 @@ package bundle
 // support the same set. Add a blank import per approved addon module — this is the
 // one place to update.
 import (
-	_ "github.com/invopop/gobl.fr.ctc/addon"
+	_ "github.com/invopop/gobl/addons"       // all in-core addons + the approved-addon registry
+	_ "github.com/invopop/gobl.fr.ctc/addon" // approved external addons
 )

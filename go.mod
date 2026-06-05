@@ -7,7 +7,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.403.1-0.20260604221126-ff04d20e7388
+	github.com/invopop/gobl v0.403.1-0.20260605093856-0dd345f05666
 	github.com/invopop/gobl.fr.ctc v0.0.2
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0

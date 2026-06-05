@@ -343,12 +343,31 @@ func TestNetServeWhoUnauthorized(t *testing.T) {
 
 func TestNetServeInboxAudMismatch(t *testing.T) {
 	srv, _ := setupNetServer(t)
-	// /inbox tolerates missing aud, but rejects an aud naming a different recipient.
+	// An envelope bound to a different recipient is rejected — prevents
+	// replay against an inbox the signer didn't intend.
 	msg := &note.Message{Content: "wrong aud"}
 	msg.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
 	require.NoError(t, env.Sign(testPeerKey, net.Address(testPeerDomain).URI(), net.Address("other.example").URI()))
+	body, err := json.Marshal(env)
+	require.NoError(t, err)
+	resp, err := http.Post(srv.URL+net.InboxPath, "application/json", bytes.NewReader(body))
+	require.NoError(t, err)
+	defer resp.Body.Close() //nolint:errcheck
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+}
+
+func TestNetServeInboxAudMissing(t *testing.T) {
+	srv, _ := setupNetServer(t)
+	// An envelope signed without an aud is rejected — inboxes require
+	// the signature to be bound to their address so the same envelope
+	// cannot be replayed against multiple inboxes.
+	msg := &note.Message{Content: "no aud"}
+	msg.SetUUID(uuid.V7())
+	env, err := gobl.Envelop(msg)
+	require.NoError(t, err)
+	require.NoError(t, env.Sign(testPeerKey, net.Address(testPeerDomain).URI(), ""))
 	body, err := json.Marshal(env)
 	require.NoError(t, err)
 	resp, err := http.Post(srv.URL+net.InboxPath, "application/json", bytes.NewReader(body))

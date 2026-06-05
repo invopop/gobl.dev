@@ -841,19 +841,32 @@ func handleInbox(log *slog.Logger, client *net.Client, dir string, self cbc.URI,
 			return
 		}
 
-		// Audience binding is optional for deliveries: verify the signer
-		// (iss) without enforcing aud, then reject only if a present aud
-		// names a different recipient.
 		sender, err := client.VerifyEnvelope(r.Context(), env, "")
 		if err != nil {
 			log.Warn("inbox.rejected", "reason", "verify_failed", "remote", r.RemoteAddr, "error", err.Error())
 			http.Error(w, "signature verification failed: "+err.Error(), http.StatusUnauthorized)
 			return
 		}
-		if p, perr := head.SignedPayload(env.Signatures[0]); perr == nil && self != "" && p.Aud != "" && p.Aud != self {
-			log.Warn("inbox.rejected", "reason", "aud_mismatch", "caller", string(sender), "aud", string(p.Aud))
-			http.Error(w, "envelope audience does not match this inbox", http.StatusUnauthorized)
-			return
+		// Inboxes require the envelope to be bound to this address. A
+		// missing or mismatched aud is rejected so the same valid
+		// envelope cannot be replayed against a different inbox.
+		if self != "" {
+			p, perr := head.SignedPayload(env.Signatures[0])
+			if perr != nil {
+				log.Warn("inbox.rejected", "reason", "verify_failed", "caller", string(sender), "error", perr.Error())
+				http.Error(w, "could not read signed payload", http.StatusUnauthorized)
+				return
+			}
+			if p.Aud == "" {
+				log.Warn("inbox.rejected", "reason", "aud_missing", "caller", string(sender))
+				http.Error(w, "envelope must be signed with an audience matching this inbox", http.StatusUnauthorized)
+				return
+			}
+			if p.Aud != self {
+				log.Warn("inbox.rejected", "reason", "aud_mismatch", "caller", string(sender), "aud", string(p.Aud))
+				http.Error(w, "envelope audience does not match this inbox", http.StatusUnauthorized)
+				return
+			}
 		}
 		if !allowed(allow, present, sender) {
 			log.Warn("inbox.rejected", "reason", "not_allowed", "caller", string(sender))

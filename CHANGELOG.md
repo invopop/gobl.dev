@@ -51,6 +51,16 @@
 
 ### Changed
 
+- `gobl net serve` `/inbox`: an envelope MUST now be signed with an
+  `aud` equal to the inbox owner's address. Envelopes signed without
+  an audience, or bound to a different audience, are rejected with
+  `401 Unauthorized` (access log `inbox.rejected` carries
+  `reason=aud_missing` or `reason=aud_mismatch`). This prevents a
+  valid envelope from being replayed against multiple inboxes —
+  signers must know the recipient at sign time. `gobl sign --domain
+  X --to Y` already stamps `aud=gobl:Y` into the signed payload, so
+  the operator workflow is unchanged; callers that previously sent
+  audience-less envelopes to an inbox MUST start setting `--to`.
 - `gobl keygen`: deprecated in favour of `gobl init <domain>`.
 - `gobl net serve --keys` → `--keys-dir`. The on-disk layout for
   published keys is now `<domain>/keys/<kid>.json` (one file per

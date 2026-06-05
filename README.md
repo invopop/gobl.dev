@@ -190,6 +190,10 @@ self-signature.
 Reads a signed envelope from a file (or stdin), POSTs it to the destination's
 `/inbox`. Exits 0 on `202 Accepted`; otherwise `ErrInboxRejected`.
 
+The envelope's signed `aud` MUST equal `--to`: receiving inboxes reject
+envelopes signed without an audience or bound to a different one (replay
+protection). `gobl sign --domain X --to Y` stamps `aud=gobl:Y` for you.
+
 - `--insecure` — use `http://` and permit `host:port` form in `--to`
   (development only).
 
@@ -300,7 +304,7 @@ The top-level `--json` flag toggles the format:
 | `who.exchange`       | INFO  | `caller` (verified `iss` as FQDN)                                                 |
 | `who.rejected`       | WARN  | `reason` (`bad_body`/`verify_failed`/`not_allowed`), `remote`/`caller`/`error`    |
 | `inbox.accepted`     | INFO  | `caller`, `envelope` (UUID)                                                       |
-| `inbox.rejected`     | WARN  | `reason` (`bad_body`/`validation`/`verify_failed`/`aud_mismatch`/`not_allowed`)   |
+| `inbox.rejected`     | WARN  | `reason` (`bad_body`/`validation`/`verify_failed`/`aud_missing`/`aud_mismatch`/`not_allowed`)   |
 | `inbox.write_failed` | ERROR | `caller`, `envelope`, `error`                                                     |
 
 **Error reporting.** A CLI command that fails emits a single `command failed`

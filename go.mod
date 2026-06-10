@@ -6,8 +6,9 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.403.1-0.20260610211443-8cfb6ccbc876
+	github.com/invopop/gobl v0.500.0
 	github.com/invopop/gobl.fr.ctc v0.0.3-0.20260609134133-16fd5925da73
+	github.com/invopop/gobl.sa.zatca v0.0.1
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1

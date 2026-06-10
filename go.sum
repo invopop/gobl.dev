@@ -35,8 +35,12 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/invopop/gobl v0.403.1-0.20260610211443-8cfb6ccbc876 h1:oFbsWBGQUp9H/8z+c4yZGePeAK5iJbE3q/qaa8Jd9NA=
 github.com/invopop/gobl v0.403.1-0.20260610211443-8cfb6ccbc876/go.mod h1:EGDHHuPbF8JxRfct0q/s9t7ei2gjkOwjH3SytjB3aS0=
+github.com/invopop/gobl v0.500.0 h1:Ob3uO8wCywDkzJFpKI8zsUY/pL0sYsFobZlfRAZjd44=
+github.com/invopop/gobl v0.500.0/go.mod h1:EGDHHuPbF8JxRfct0q/s9t7ei2gjkOwjH3SytjB3aS0=
 github.com/invopop/gobl.fr.ctc v0.0.3-0.20260609134133-16fd5925da73 h1:lDYca5PCe2EMMBrBVHpiW9YaY9mv3tksWpzOxQeIihY=
 github.com/invopop/gobl.fr.ctc v0.0.3-0.20260609134133-16fd5925da73/go.mod h1:9eowIMNRW8pU7lwoC8pz6I3iCvclr2eXrNDro8sGNMw=
+github.com/invopop/gobl.sa.zatca v0.0.1 h1:P4d6IDPId6CU9zA0c1YaXzFYsNq2hgV5kvNRNSI2sVE=
+github.com/invopop/gobl.sa.zatca v0.0.1/go.mod h1:HTTAUUQoJgpvqbsd2wvLxbH6aAeypHBfuNadoeafQK8=
 github.com/invopop/icons v0.14.0 h1:Bk0hF+EI/x3XwWX1IqMeFDMdu766zY3zFBqTkImCdhU=
 github.com/invopop/icons v0.14.0/go.mod h1:rXrrY2Rz7Z7KINyQIPMaauqXTZNhVMDI2MYIiux436Y=
 github.com/invopop/jsonschema v0.14.0 h1:MHQqLhvpNUZfw+hM3AZDYK7jxO8FZoQeQM77g8iyZjg=

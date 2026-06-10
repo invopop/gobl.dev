@@ -6,4 +6,5 @@ package bundle
 // one place to update.
 import (
 	_ "github.com/invopop/gobl.fr.ctc/addon"
+	_ "github.com/invopop/gobl.sa.zatca/addon"
 )

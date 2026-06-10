@@ -1,0 +1,66 @@
+#
+# Fully-automated release of the GOBL CLI and wasm. On every push to main it
+# bumps the semver tag (patch by default; use #minor / #major in a commit
+# message to bump further), then builds and publishes the `gobl` CLI and the
+# wasm binary as GitHub Release assets via GoReleaser, and uploads the wasm to
+# cdn.gobl.org.
+#
+# The gobl-worker npm package is published separately by publish-npm.yaml,
+# which runs on successful completion of this workflow and can be re-run
+# manually to retry a failed publish.
+#
+name: Release CLI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write # create tags and releases
+
+concurrency:
+  group: release-cli
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release CLI & wasm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: "0" # all commits, for semver + changelog
+
+      - name: Bump version and push tag
+        id: tag
+        uses: anothrNick/github-tag-action@1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: "true"
+          RELEASE_BRANCHES: main
+          # Floor the CLI versioning above core's 0.4xx series. Applies only
+          # when no tags exist yet, so the first release lands at v0.500.1
+          # (INITIAL_VERSION is the pre-bump base); every release stays >= 0.500.0.
+          INITIAL_VERSION: "0.500.0"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Run GoReleaser (CLI + wasm)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Cloudflare R2 (cdn.gobl.org) credentials for the wasm upload.
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

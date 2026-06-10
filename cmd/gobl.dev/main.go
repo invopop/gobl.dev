@@ -14,7 +14,8 @@ import (
 	"time"
 
 	"github.com/invopop/gobl"
-	goblapi "github.com/invopop/gobl/pkg/api"
+	goblapi "github.com/invopop/gobl.dev/api"
+	_ "github.com/invopop/gobl.dev/bundle"
 	"github.com/invopop/gobl.dev/editor"
 )
 

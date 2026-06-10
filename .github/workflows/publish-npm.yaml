@@ -54,6 +54,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
+          # workflow_run executes in the default branch's cache scope; with
+          # caching on, the npm build steps below could poison caches restored
+          # by privileged workflows (CodeQL cache-poisoning/poisonable-step).
+          cache: false
 
       # wasm_exec.js is gitignored; copy it from the active Go install before
       # the npm build bundles it.

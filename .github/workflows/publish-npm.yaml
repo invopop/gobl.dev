@@ -34,13 +34,15 @@ jobs:
     outputs:
       tag: ${{ steps.npm-tag.outputs.tag }}
     steps:
+      # No explicit `ref`: for workflow_run this is the default branch and for
+      # workflow_dispatch the selected ref. Referencing
+      # github.event.workflow_run.head_sha here would count as untrusted data
+      # for CodeQL (cache-poisoning/poisonable-step); the released commit is
+      # pinned via its tag in the next step instead.
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: "0" # need tags to resolve the released version
-          # Pin to the commit Release CLI ran against; fall back to the
-          # selected ref for manual dispatch.
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           persist-credentials: false
 
       - name: Resolve released version
@@ -48,6 +50,8 @@ jobs:
         run: |
           version="$(git describe --tags --abbrev=0)"
           echo "Building gobl-worker $version"
+          # Build exactly the released commit, even if the branch has moved on.
+          git checkout --detach "refs/tags/${version}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go

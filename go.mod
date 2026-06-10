@@ -6,11 +6,12 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.403.1-0.20260604154058-bf1686089acd
-	github.com/invopop/gobl.fr.ctc v0.0.2
+	github.com/invopop/gobl v0.403.1-0.20260610204727-53a4cb61e79c
+	github.com/invopop/gobl.fr.ctc v0.0.3-0.20260609134133-16fd5925da73
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1
+	github.com/magefile/mage v1.17.2
 	github.com/mark3labs/mcp-go v0.46.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.11.1
@@ -34,7 +35,6 @@ require (
 	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/labstack/echo/v4 v4.15.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
-	github.com/magefile/mage v1.17.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect

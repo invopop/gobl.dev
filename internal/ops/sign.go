@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/invopop/gobl"
+	"github.com/invopop/gobl/cbc"
 	"github.com/invopop/gobl/dsig"
 )
 
@@ -11,6 +12,12 @@ import (
 type SignOptions struct {
 	*ParseOptions
 	PrivateKey *dsig.PrivateKey
+
+	// Issuer is the signer's verifiable GOBL Net address (a gobl: URI) and
+	// Audience is the optional GOBL Net audience the signature is bound to;
+	// either may be empty.
+	Issuer   cbc.URI
+	Audience cbc.URI
 }
 
 // Sign parses a GOBL document into an envelope, performs calculations,
@@ -35,7 +42,7 @@ func Sign(ctx context.Context, opts *SignOptions) (*gobl.Envelope, error) {
 	}
 
 	// Sign envelope headers. Validation is done transparently in `Sign`.
-	if err := env.Sign(opts.PrivateKey); err != nil {
+	if err := env.Sign(opts.PrivateKey, opts.Issuer, opts.Audience); err != nil {
 		return nil, gobl.ErrInternal.WithCause(err)
 	}
 

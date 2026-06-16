@@ -23,7 +23,7 @@
   "devDependencies": {
     "@cypress-audit/lighthouse": "^1.4.2",
     "browser-sync": "^3.0.3",
-    "cypress": "^14.1.0",
+    "cypress": "^15.17.0",
     "eslint": "^9.21.0",
     "eslint-config-prettier": "^10.0.2",
     "eslint-plugin-cypress": "^4.1.0",

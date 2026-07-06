@@ -18,10 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/flimzy/testy"
 
-	// Register the full GOBL.dev addon set, matching the production binaries
-	// (see cmd/gobl and bundle/bundle.go). Some schemas (e.g. the Mexican
-	// mx/food-vouchers and mx/fuel-account-balance) are provided by addon
-	// modules rather than gobl core, so the schema list must include them.
+	// Register the full addon set so the schema list matches production.
 	_ "github.com/invopop/gobl.dev/bundle"
 )
 

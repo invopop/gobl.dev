@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/invopop/gobl/dsig"
 	"github.com/invopop/gobl.dev/internal/ops"
+	"github.com/invopop/gobl/dsig"
 	goblnet "github.com/invopop/gobl/net"
 )
 

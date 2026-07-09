@@ -19,8 +19,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/invopop/gobl"
-	"github.com/invopop/gobl/dsig"
 	"github.com/invopop/gobl.dev/internal/ops"
+	"github.com/invopop/gobl/dsig"
+	"github.com/invopop/gobl/head"
 	"github.com/invopop/gobl/net"
 	"github.com/invopop/gobl/note"
 	"github.com/invopop/gobl/org"
@@ -63,8 +64,8 @@ func signedNoteBody(t *testing.T) []byte {
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
 	require.NoError(t, env.Sign(priv,
-		net.Address("peer.example").URI(),
-		net.Address("acme.example").URI()))
+		head.WithIssuer(net.Address("peer.example").URI()),
+		head.WithAudience(net.Address("acme.example").URI())))
 	out, err := json.Marshal(env)
 	require.NoError(t, err)
 	return out

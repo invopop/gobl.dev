@@ -12,6 +12,7 @@ import (
 
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/dsig"
+	"github.com/invopop/gobl/head"
 	"github.com/invopop/gobl/net"
 	"github.com/invopop/gobl/note"
 	"github.com/invopop/gobl/org"
@@ -189,7 +190,7 @@ func TestMultiDomainRouter(t *testing.T) {
 	for _, host := range []string{"a.example", "b.example"} {
 		reqEnv, err := gobl.Envelop(&org.Party{Name: "Peer"})
 		require.NoError(t, err)
-		require.NoError(t, reqEnv.Sign(peerKey, net.Address(peer).URI(), net.Address(host).URI()))
+		require.NoError(t, reqEnv.Sign(peerKey, head.WithIssuer(net.Address(peer).URI()), head.WithAudience(net.Address(host).URI())))
 		body, err := json.Marshal(reqEnv)
 		require.NoError(t, err)
 
@@ -221,7 +222,7 @@ func TestMultiDomainRouter(t *testing.T) {
 	msg.SetUUID(uuid.V7())
 	denv, err := gobl.Envelop(msg)
 	require.NoError(t, err)
-	require.NoError(t, denv.Sign(peerKey, net.Address(peer).URI(), net.Address("a.example").URI()))
+	require.NoError(t, denv.Sign(peerKey, head.WithIssuer(net.Address(peer).URI()), head.WithAudience(net.Address("a.example").URI())))
 	body, err := json.Marshal(denv)
 	require.NoError(t, err)
 

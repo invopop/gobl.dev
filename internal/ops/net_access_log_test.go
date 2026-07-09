@@ -14,6 +14,7 @@ import (
 
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/dsig"
+	"github.com/invopop/gobl/head"
 	"github.com/invopop/gobl/net"
 	"github.com/invopop/gobl/note"
 	"github.com/invopop/gobl/org"
@@ -91,7 +92,7 @@ func TestAccessLogWhoRejectsVerifyFailed(t *testing.T) {
 	other := dsig.NewES256Key()
 	env, err := gobl.Envelop(&org.Party{Name: "Stranger"})
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(other, net.Address("unknown.example").URI(), net.Address(testServeDomain).URI()))
+	require.NoError(t, env.Sign(other, head.WithIssuer(net.Address("unknown.example").URI()), head.WithAudience(net.Address(testServeDomain).URI())))
 	body, _ := json.Marshal(env)
 	resp, err := http.Post(srv.URL+net.WhoPath, "application/json", bytes.NewReader(body))
 	require.NoError(t, err)
@@ -149,7 +150,7 @@ func TestAccessLogInboxAccepted(t *testing.T) {
 	msg.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(testPeerKey, net.Address(testPeerDomain).URI(), net.Address(testServeDomain).URI()))
+	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI()), head.WithAudience(net.Address(testServeDomain).URI())))
 	body, _ := json.Marshal(env)
 
 	resp, err := http.Post(srv.URL+net.InboxPath, "application/json", bytes.NewReader(body))
@@ -172,7 +173,7 @@ func TestAccessLogInboxAudMismatch(t *testing.T) {
 	msg.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(testPeerKey, net.Address(testPeerDomain).URI(), net.Address("other.example").URI()))
+	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI()), head.WithAudience(net.Address("other.example").URI())))
 	body, _ := json.Marshal(env)
 	resp, err := http.Post(srv.URL+net.InboxPath, "application/json", bytes.NewReader(body))
 	require.NoError(t, err)

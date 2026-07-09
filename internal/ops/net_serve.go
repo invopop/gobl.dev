@@ -803,7 +803,7 @@ func handleWho(log *slog.Logger, client *net.Client, partyEnvBytes []byte, priv 
 			http.Error(w, "could not load party", http.StatusInternalServerError)
 			return
 		}
-		if err := resp.Sign(priv, self, caller.URI()); err != nil {
+		if err := resp.Sign(priv, head.WithIssuer(self), head.WithAudience(caller.URI())); err != nil {
 			log.Error("who.sign_failed", "caller", string(caller), "error", err.Error())
 			http.Error(w, "could not sign party: "+err.Error(), http.StatusInternalServerError)
 			return

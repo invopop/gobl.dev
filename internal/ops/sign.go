@@ -6,17 +6,19 @@ import (
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/cbc"
 	"github.com/invopop/gobl/dsig"
+	"github.com/invopop/gobl/head"
 )
 
 // SignOptions are the options used for signing a GOBL document.
 type SignOptions struct {
 	*ParseOptions
 	PrivateKey *dsig.PrivateKey
-	// Iss is the signer's verifiable GOBL Net identity (a gobl: URI),
-	// signed into the payload. Aud is the optional GOBL Net audience the
-	// signature is bound to.
-	Iss cbc.URI
-	Aud cbc.URI
+
+	// Issuer is the signer's verifiable GOBL Net address (a gobl: URI) and
+	// Audience is the optional GOBL Net audience the signature is bound to;
+	// either may be empty.
+	Issuer   cbc.URI
+	Audience cbc.URI
 }
 
 // Sign parses a GOBL document into an envelope, performs calculations,
@@ -41,7 +43,14 @@ func Sign(ctx context.Context, opts *SignOptions) (*gobl.Envelope, error) {
 	}
 
 	// Sign envelope headers. Validation is done transparently in `Sign`.
-	if err := env.Sign(opts.PrivateKey, opts.Iss, opts.Aud); err != nil {
+	var signOpts []head.SignOption
+	if opts.Issuer != "" {
+		signOpts = append(signOpts, head.WithIssuer(opts.Issuer))
+	}
+	if opts.Audience != "" {
+		signOpts = append(signOpts, head.WithAudience(opts.Audience))
+	}
+	if err := env.Sign(opts.PrivateKey, signOpts...); err != nil {
 		return nil, gobl.ErrInternal.WithCause(err)
 	}
 

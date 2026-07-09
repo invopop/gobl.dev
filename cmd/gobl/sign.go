@@ -9,9 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/invopop/gobl.dev/internal/ops"
 	"github.com/invopop/gobl/cbc"
 	"github.com/invopop/gobl/dsig"
-	"github.com/invopop/gobl.dev/internal/ops"
 	goblnet "github.com/invopop/gobl/net"
 )
 
@@ -113,8 +113,8 @@ func (opts *signOpts) runE(cmd *cobra.Command, args []string) error {
 			DocType:   opts.docType,
 		},
 		PrivateKey: key,
-		Iss:        iss,
-		Aud:        aud,
+		Issuer:     iss,
+		Audience:   aud,
 	}
 
 	env, err := ops.Sign(ctx, signOpts)

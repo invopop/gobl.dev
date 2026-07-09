@@ -113,7 +113,7 @@ func TestVerifyRemote(t *testing.T) {
 			},
 		},
 		PrivateKey: privateKey,
-		Iss:        addr.URI(),
+		Issuer:     addr.URI(),
 	})
 	require.NoError(t, err)
 	body, err := json.Marshal(env)

@@ -79,7 +79,7 @@ func NetWho(ctx context.Context, opts *NetWhoOptions) (*gobl.Envelope, error) {
 	if err != nil {
 		return nil, fmt.Errorf("net who: build request: %w", err)
 	}
-	if err := reqEnv.Sign(opts.FromKey, opts.From.URI(), opts.Target.URI()); err != nil {
+	if err := reqEnv.Sign(opts.FromKey, head.WithIssuer(opts.From.URI()), head.WithAudience(opts.Target.URI())); err != nil {
 		return nil, fmt.Errorf("net who: sign request: %w", err)
 	}
 	reqBody, err := json.Marshal(reqEnv)

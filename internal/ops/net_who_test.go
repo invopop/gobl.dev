@@ -147,7 +147,7 @@ func TestNetWhoResponseWrongIssuer(t *testing.T) {
 	env, err := gobl.Envelop(&org.Party{Name: "Wrong"})
 	require.NoError(t, err)
 	// iss = peer (caller) — but NetWho expects iss=target.
-	require.NoError(t, env.Sign(testPeerKey, net.Address(testPeerDomain).URI(), net.Address(testServeDomain).URI()))
+	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI()), head.WithAudience(net.Address(testServeDomain).URI())))
 	body, err := json.Marshal(env)
 	require.NoError(t, err)
 
@@ -188,9 +188,7 @@ func TestNetWhoResponseAudMismatch(t *testing.T) {
 
 	env, err := gobl.Envelop(&org.Party{Name: "X"})
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(targetKey,
-		net.Address(testServeDomain).URI(),
-		net.Address("other.example").URI()))
+	require.NoError(t, env.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).URI()), head.WithAudience(net.Address("other.example").URI())))
 	body, err := json.Marshal(env)
 	require.NoError(t, err)
 
@@ -221,7 +219,7 @@ func TestNetWhoResponseDocNotParty(t *testing.T) {
 	// Wrap a non-party document.
 	wrap, err := gobl.Envelop(&org.Endpoint{URI: "gobl:x.example"})
 	require.NoError(t, err)
-	require.NoError(t, wrap.Sign(targetKey, net.Address(testServeDomain).URI(), net.Address(testPeerDomain).URI()))
+	require.NoError(t, wrap.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).URI()), head.WithAudience(net.Address(testPeerDomain).URI())))
 	body, err := json.Marshal(wrap)
 	require.NoError(t, err)
 

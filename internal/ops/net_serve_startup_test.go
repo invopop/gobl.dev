@@ -14,6 +14,7 @@ import (
 
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/dsig"
+	"github.com/invopop/gobl/head"
 	"github.com/invopop/gobl/net"
 	"github.com/invopop/gobl/org"
 	"github.com/stretchr/testify/assert"
@@ -213,8 +214,8 @@ func TestReadPartyEnvelopeSignedEnvelopeRoundTrip(t *testing.T) {
 	env, err := gobl.Envelop(&org.Party{Name: "Pre-signed"})
 	require.NoError(t, err)
 	require.NoError(t, env.Sign(privateKey,
-		net.Address("d.example.com").URI(),
-		net.Address("other.example").URI()))
+		head.WithIssuer(net.Address("d.example.com").URI()),
+		head.WithAudience(net.Address("other.example").URI())))
 	data, err := json.Marshal(env)
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(dc.PartyFile, data, 0o644))

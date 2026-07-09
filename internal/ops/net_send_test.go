@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/invopop/gobl"
+	"github.com/invopop/gobl/head"
 	"github.com/invopop/gobl/net"
 	"github.com/invopop/gobl/note"
 	"github.com/invopop/gobl/uuid"
@@ -26,7 +27,7 @@ func signedNoteEnvelope(t *testing.T, content string) []byte {
 	msg.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(testPeerKey, net.Address(testPeerDomain).URI(), net.Address(testServeDomain).URI()))
+	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI()), head.WithAudience(net.Address(testServeDomain).URI())))
 	body, err := json.Marshal(env)
 	require.NoError(t, err)
 	return body

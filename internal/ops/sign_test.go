@@ -26,8 +26,8 @@ func signIss(t *testing.T, iss, aud cbc.URI) *gobl.Envelope {
 	env, err := Sign(context.Background(), &SignOptions{
 		ParseOptions: &ParseOptions{Input: strings.NewReader(noteMessageJSON)},
 		PrivateKey:   privateKey,
-		Iss:          iss,
-		Aud:          aud,
+		Issuer:       iss,
+		Audience:     aud,
 	})
 	require.NoError(t, err)
 	data, err := json.Marshal(env)

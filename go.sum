@@ -41,10 +41,10 @@ github.com/invopop/gobl.br.nfse v0.0.1 h1:BdwNiG7vk7bPMgE4m102P+UysOxmYWhOKIDfFI
 github.com/invopop/gobl.br.nfse v0.0.1/go.mod h1:m22voo72ZScRiwIS49wXhzGRahzBO+IEAN0M0Kij3QI=
 github.com/invopop/gobl.fr.ctc v0.0.4 h1:x4eJ3hp9Y9lTCzWFhNqZYm9kCXyuC34EytOuaU03faE=
 github.com/invopop/gobl.fr.ctc v0.0.4/go.mod h1:YXJ0G7lCWxUehI4C2xBPL1y6rTNC29t/kOul7wY+3Xs=
-github.com/invopop/gobl.mx.cfdi v0.61.0 h1:f/rtRl5mIgePWQxjLB1UfsU45dQp/4/ZxJjsHGGtjiA=
-github.com/invopop/gobl.mx.cfdi v0.61.0/go.mod h1:2ag6z2QhCMltl5YcxL9yL8IzY+mXuOJe39yhk9YWTsM=
-github.com/invopop/gobl.pt.saft v0.0.1 h1:sXG+HsiN8rZVAxSvv33i/5+8QM8UJbadklmZZUkA5dM=
-github.com/invopop/gobl.pt.saft v0.0.1/go.mod h1:0itJS6OpV+2BcaD4xRwEf4gEOcVeGdrfoghwxB+UWrg=
+github.com/invopop/gobl.mx.cfdi v0.62.0 h1:Uwh5wbwiTNHJ9fWOK72ma/xVoJMdPvdMf3VI57PjKRw=
+github.com/invopop/gobl.mx.cfdi v0.62.0/go.mod h1:sXy7JIXauSKRqT0HgHsFICIV9YXuSHK3Quq9uZWZ9L0=
+github.com/invopop/gobl.pt.saft v0.0.5 h1:Hc2Sbd280fDgPi9FznI/Xi95lAMzG8A4YEp6SW4H6uY=
+github.com/invopop/gobl.pt.saft v0.0.5/go.mod h1:z5L+dLFBx6PmEdacnFWehYWgiYZSM2HaPzx6ld+DnQs=
 github.com/invopop/gobl.sa.zatca v0.0.2 h1:qU2Y0LP+4mjvZkuG1TOUp/Zs0XxRAzkzQFHy3WOVFEU=
 github.com/invopop/gobl.sa.zatca v0.0.2/go.mod h1:tmLCoaKb4X7sZ2zRU8LalA1sgxM2kQv/uqMzZslhE6A=
 github.com/invopop/icons v0.14.0 h1:Bk0hF+EI/x3XwWX1IqMeFDMdu766zY3zFBqTkImCdhU=

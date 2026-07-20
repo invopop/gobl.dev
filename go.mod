@@ -9,14 +9,13 @@ require (
 	github.com/invopop/gobl v0.502.2
 	github.com/invopop/gobl.br.nfe v0.0.1
 	github.com/invopop/gobl.br.nfse v0.0.1
-	github.com/invopop/gobl.cii v0.34.0
-	github.com/invopop/gobl.fatturapa v0.60.0
+	github.com/invopop/gobl.cii v0.39.0
 	github.com/invopop/gobl.fr.ctc v0.0.4
-	github.com/invopop/gobl.html v0.80.0
-	github.com/invopop/gobl.mx.cfdi v0.61.0
-	github.com/invopop/gobl.pt.saft v0.0.1
+	github.com/invopop/gobl.html v0.101.0
+	github.com/invopop/gobl.mx.cfdi v0.62.0
+	github.com/invopop/gobl.pt.saft v0.0.5
 	github.com/invopop/gobl.sa.zatca v0.0.2
-	github.com/invopop/gobl.ubl v0.41.1-0.20260422220142-5fefcce8bd89
+	github.com/invopop/gobl.ubl v0.56.0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1
@@ -24,17 +23,17 @@ require (
 	github.com/mark3labs/mcp-go v0.46.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.11.1
-	gitlab.com/flimzy/testy v0.14.0
+	gitlab.com/flimzy/testy v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	cloud.google.com/go v0.118.0 // indirect
+	cloud.google.com/go v0.119.0 // indirect
 	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Oudwins/tailwind-merge-go v0.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
-	github.com/beevik/etree v1.5.0 // indirect
+	github.com/beevik/etree v1.6.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect
@@ -42,22 +41,31 @@ require (
 	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/invopop/ctxi18n v0.9.0 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
+	github.com/invopop/validation v0.8.0 // indirect
+	github.com/invopop/xmlctx v0.13.0 // indirect
+	github.com/invopop/xmldsig v0.14.0 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/labstack/echo/v4 v4.15.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
+	github.com/piglig/go-qr v0.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/russellhaering/goxmldsig v1.6.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
+	github.com/yuin/goldmark v1.4.13 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
+	software.sslmate.com/src/go-pkcs12 v0.7.0 // indirect
 )

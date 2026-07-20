@@ -47,7 +47,8 @@ func TestFormatConversions(t *testing.T) {
 		{"cii", "de-xrechnung", "<?xml"},
 		{"cii-facturx", "fr-facturx", "<?xml"},
 		{"cii-xrechnung", "de-xrechnung", "<?xml"},
-		{"fatturapa", "it-fatturapa", "<?xml"},
+		// TODO: re-enable once FatturaPA is re-enabled in convert.go.
+		// {"fatturapa", "it-fatturapa", "<?xml"},
 		{"html", "us", "<html"},
 	}
 	for _, c := range cases {

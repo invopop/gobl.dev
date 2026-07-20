@@ -11,10 +11,9 @@ import (
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/bill"
 	"github.com/invopop/gobl/cbc"
-	goblapi "github.com/invopop/gobl/pkg/api"
 
+	goblapi "github.com/invopop/gobl.dev/api"
 	cii "github.com/invopop/gobl.cii"
-	fatturapa "github.com/invopop/gobl.fatturapa"
 	goblhtml "github.com/invopop/gobl.html"
 	ubl "github.com/invopop/gobl.ubl"
 )
@@ -100,19 +99,22 @@ var formats = []Format{
 		MIME:    "application/xml",
 		convert: convertCII(cii.ContextXRechnungV3),
 	},
-	{
-		ID:    "fatturapa",
-		Label: "FatturaPA",
-		Group: "Italy",
-		MIME:  "application/xml",
-		convert: func(_ context.Context, env *gobl.Envelope) ([]byte, error) {
-			doc, err := fatturapa.Convert(env)
-			if err != nil {
-				return nil, err
-			}
-			return doc.Bytes()
-		},
-	},
+	// TODO: re-enable FatturaPA once gobl.fatturapa is released against
+	// xmldsig v0.14.0 (WithXAdESConfig). v0.69.0 still calls the removed
+	// xmldsig.WithXAdES and conflicts with gobl.ubl's xmldsig v0.14.0.
+	// {
+	// 	ID:    "fatturapa",
+	// 	Label: "FatturaPA",
+	// 	Group: "Italy",
+	// 	MIME:  "application/xml",
+	// 	convert: func(_ context.Context, env *gobl.Envelope) ([]byte, error) {
+	// 		doc, err := fatturapa.Convert(env)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		return doc.Bytes()
+	// 	},
+	// },
 	{
 		ID:    "html",
 		Label: "HTML preview",

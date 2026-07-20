@@ -12,7 +12,7 @@ require (
 	github.com/invopop/gobl.fr.ctc v0.0.4
 	github.com/invopop/gobl.mx.cfdi v0.62.0
 	github.com/invopop/gobl.pt.saft v0.0.5
-	github.com/invopop/gobl.sa.zatca v0.0.2
+	github.com/invopop/gobl.sa.zatca v0.0.3
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1

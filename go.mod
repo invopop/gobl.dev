@@ -10,7 +10,7 @@ require (
 	github.com/invopop/gobl.br.nfe v0.0.1
 	github.com/invopop/gobl.br.nfse v0.0.1
 	github.com/invopop/gobl.fr.ctc v0.0.7
-	github.com/invopop/gobl.mx.cfdi v0.62.0
+	github.com/invopop/gobl.mx.cfdi v0.61.1-0.20260722150914-83bdbba78a0a
 	github.com/invopop/gobl.pt.saft v0.0.5
 	github.com/invopop/gobl.sa.zatca v0.0.3
 	github.com/invopop/icons v0.14.0

@@ -45,8 +45,10 @@ Commands:
 | `gobl replicate` | Clone a document with a fresh UUID. |
 | `gobl keygen` | Generate an ES256 key pair. *(Deprecated: prefer `gobl init`.)* |
 | `gobl init` | Scaffold a GOBL Net domain identity under `~/.config/gobl/<domain>/` (keypair + party template). See [GOBL Net](#gobl-net). |
-| `gobl net who` | Authenticated mutual party exchange with a remote GOBL Net address. |
-| `gobl net send` | POST a signed envelope to a remote `/inbox`. |
+| `gobl net who` | Authenticated identity lookup on a remote GOBL Net address. |
+| `gobl net send` | POST a signed envelope to a remote `/inbox` with a request token. |
+| `gobl net requests` | List deferred `/who` requests awaiting approval. |
+| `gobl net approve` | Approve a deferred `/who` request and deliver the party envelope. |
 | `gobl net serve` | Run the GOBL Net HTTPS server (keys + `/who` + `/inbox` + bulk JWKS). |
 | `gobl serve` | Launch the HTTP API server (see [API](#http-api)). |
 | `gobl mcp` | Launch a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio for AI tools and editors. |
@@ -143,7 +145,7 @@ documents: a signer's identity is an FQDN (e.g. `billing.invopop.com`), and
 verifying keys, an endorsed identity, and a delivery inbox are all served
 from well-known HTTPS endpoints at that domain. The protocol itself lives in
 the core library at
-[`github.com/invopop/gobl/net`](https://github.com/invopop/gobl/blob/net/net/README.md) —
+[`github.com/invopop/gobl/net`](https://github.com/invopop/gobl/blob/main/net/README.md) —
 that file is the authoritative spec for addresses, the signed `iss`/`aud`/`iat`
 payload, the per-key and JWKS endpoints, `/who`, and `/inbox`. This section
 covers only the CLI / server side.
@@ -157,7 +159,9 @@ Scaffolds a per-domain identity under `~/.config/gobl/<domain>/`:
 ├── private.jwk                              ← active signing key (0600)
 ├── keys/<kid>.json                          ← published JWK (stamped valid_from=now)
 ├── party.json                               ← party template with a pre-filled gobl: endpoint
-├── allow.json                               ← optional: gates /who and /inbox by signer
+├── who-deferred                             ← optional marker: /who answers 202, requests await approval
+├── who-requests/<requester>.json            ← inbound /who requests recorded while deferred
+├── who-pending/<target>                     ← outbound /who requests a peer answered 202
 └── inbox/                                   ← envelopes received over /inbox land here
 ```
 
@@ -180,22 +184,41 @@ Two flags activate remote verification:
 
 ### `gobl net who <address> --from <domain>`
 
-Authenticated mutual party exchange: POSTs a signed request (`iss=gobl:from`,
-`aud=gobl:address`) and prints the target's verified `org.Party` envelope —
-including any authority countersignatures the target serves alongside its
-self-signature.
+Authenticated identity lookup: GETs the target's `/who` with a bearer
+request token minted from the `--from` identity (`iss=gobl:from`,
+`aud=gobl:address`, short-lived) and prints the target's verified
+`org.Party` envelope — including any authority countersignatures the
+target serves alongside its self-signature.
 
-### `gobl net send <envelope> --to <fqdn>`
+A `202 Accepted` response means the target defers disclosure: the
+request was recorded for its operator to approve, and the command notes
+the pending state under `who-pending/` so your inbox will accept the
+party envelope the target may deliver later.
 
-Reads a signed envelope from a file (or stdin), POSTs it to the destination's
-`/inbox`. Exits 0 on `202 Accepted`; otherwise `ErrInboxRejected`.
+### `gobl net send <envelope> --to <fqdn> --from <domain>`
+
+Reads a signed envelope from a file (or stdin), POSTs it to the
+destination's `/inbox` with a request token minted from the `--from`
+identity. Exits 0 on `202 Accepted`; otherwise `ErrInboxRejected`.
+
+The token's issuer may differ from the envelope's signer — a trusted
+intermediary transmitting a document on the signer's behalf
+authenticates the request with its own identity.
 
 The envelope's signed `aud` MUST equal `--to`: receiving inboxes reject
 envelopes signed without an audience or bound to a different one (replay
 protection). `gobl sign --domain X --to Y` stamps `aud=gobl:Y` for you.
 
-- `--insecure` — use `http://` and permit `host:port` form in `--to`
-  (development only).
+### `gobl net requests --domain <domain>`
+
+Lists the deferred `/who` requests (requester + time) a
+deferred-disclosure domain has answered `202` and recorded.
+
+### `gobl net approve <requester> --domain <domain>`
+
+Approves a deferred `/who` request: signs the domain's party envelope
+for the requester (`iss=gobl:domain`, `aud=gobl:requester`), delivers it
+to the requester's inbox, and clears the recorded request.
 
 ### `gobl net serve`
 
@@ -204,8 +227,8 @@ TLS source is configured it also listens on the HTTPS port (default 443),
 serving identical content — no redirect, senders choose the scheme.
 
 **Multi-tenant.** Auto-discovers every `<config-dir>/<domain>/` directory and
-routes by HTTP `Host`. `--domain` restricts to one; `--party` + `--keys-dir`
-selects a single manual identity. ACME issues for every discovered domain.
+routes by HTTP `Host`. `--domain` restricts to one. ACME issues for every
+discovered domain.
 
 **Startup checks** (each is a hard error with a clear message):
 
@@ -215,9 +238,33 @@ selects a single manual identity. ACME issues for every discovered domain.
 - Every file in `keys/` MUST be named `<kid>.json` where `kid` equals the
   JWK's `kid` field. Non-`.json` entries and subdirectories are ignored.
 - The active `private.jwk`'s `kid` MUST be one of the published kids.
-- The party envelope MUST contain at least one signature whose `kid` is
-  published and which verifies against that key. Endorser signatures are
-  allowed alongside.
+- A `party.json` (raw `org.Party` or pre-signed envelope) is self-signed
+  once at startup and served as the static `/who` response. A missing
+  party file is not an error: the domain is receive-only and `/who`
+  answers `204`.
+
+**Request authentication.** `/who` and `/inbox` require an
+`Authorization: Bearer` request token (see the spec §5.5): the server
+resolves the requester's published key from the token's `iss`, checks
+the audience and freshness, and rejects everything else with `401`. Key
+endpoints stay open.
+
+**Endorsement policy.** The inbox always requires incoming envelopes'
+senders to be endorsed: their who identity must carry a
+countersignature from a trusted authority — `lookup.gobl.org` by
+default (its reference implementation lives in
+[`gobl.lookup`](https://github.com/invopop/gobl.lookup)), with
+`--authority <fqdn>` (repeatable) supplementing the list — naming a
+verifier (KYC/KYB, spec §5.3) confirmed by the verifier's own
+countersignature. Unendorsed or unverified senders get `403`. Pass
+`--allow-unverified` to accept registered-but-unverified senders in
+sandbox environments and tests. A self-signed party envelope answering
+one of the domain's own pending `/who` requests is accepted without
+endorsement.
+
+**Deferred disclosure.** Touch `<domain>/who-deferred` to answer `/who`
+with `202` and record requests for `gobl net requests` /
+`gobl net approve`.
 
 **Ports:**
 
@@ -301,11 +348,19 @@ The top-level `--json` flag toggles the format:
 | `http_request`       | INFO  | `method`, `path`, `host`, `remote`, `status`, `duration_ms`                       |
 | `keys.lookup`        | INFO  | `kid`, `found`                                                                    |
 | `jwks.served`        | INFO  | `count`                                                                           |
-| `who.exchange`       | INFO  | `caller` (verified `iss` as FQDN)                                                 |
-| `who.rejected`       | WARN  | `reason` (`bad_body`/`verify_failed`/`not_allowed`), `remote`/`caller`/`error`    |
+| `auth.rejected`      | WARN  | `path`, `reason` (`token_missing`/`token_invalid`/`token_expired`), `remote`, `error` |
+| `who.served`         | INFO  | `requester` (verified token `iss` as FQDN), `status` (200/204)                    |
+| `who.deferred`       | INFO  | `requester` — request recorded, answered 202                                      |
+| `who.approved`       | INFO  | `requester` — party delivered by `gobl net approve`                               |
+| `who.fulfilled`      | INFO  | `caller` — party envelope answering a pending /who request accepted               |
 | `inbox.accepted`     | INFO  | `caller`, `envelope` (UUID)                                                       |
-| `inbox.rejected`     | WARN  | `reason` (`bad_body`/`validation`/`verify_failed`/`aud_missing`/`aud_mismatch`/`not_allowed`)   |
+| `inbox.rejected`     | WARN  | `reason` (`bad_body`/`validation`/`verify_failed`/`aud_missing`/`aud_mismatch`/`not_endorsed`)  |
 | `inbox.write_failed` | ERROR | `caller`, `envelope`, `error`                                                     |
+
+The `auth.rejected` and `who.served`/`who.deferred` entries double as
+the server's request audit log: every authenticated request names a
+verified requester. The log is itself personal data — bound retention
+accordingly.
 
 **Error reporting.** A CLI command that fails emits a single `command failed`
 entry on stderr with `key=<gobl-error-key>` and (when present) `message=…`

@@ -8,15 +8,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/invopop/gobl.dev/internal/ops"
+	goblnet "github.com/invopop/gobl/net"
 )
 
 type netServeOpts struct {
 	*rootOpts
-	configDir  string
-	partyFile  string
-	keysDir    string
-	privateKey string
-	inboxDir   string
+	configDir string
 
 	httpPort  int
 	httpsPort int
@@ -29,6 +26,9 @@ type netServeOpts struct {
 
 	tlsCert string
 	tlsKey  string
+
+	authorities     []string
+	allowUnverified bool
 }
 
 func netServe(root *rootOpts) *netServeOpts {
@@ -47,21 +47,20 @@ func (s *netServeOpts) cmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&s.configDir, "config-dir", configDir, "Base directory; its <domain>/ subdirectories are auto-discovered and served, routed by Host")
-	f.StringVar(&s.partyFile, "party", "", "Manual single-identity mode: party.json (raw org.Party or signed envelope) served at /.well-known/gobl/who")
-	f.StringVarP(&s.keysDir, "keys-dir", "k", "", "Manual single-identity mode: directory of <kid>.json public keys published at /.well-known/gobl/keys/<kid>")
-	f.StringVar(&s.privateKey, "private-key", "", "Manual single-identity mode: private key paired with the JWKS")
-	f.StringVar(&s.inboxDir, "inbox", "", "Manual single-identity mode: directory to write accepted envelopes into")
 
 	f.IntVar(&s.httpPort, "http-port", 80, "HTTP listen port")
 	f.IntVar(&s.httpsPort, "https-port", 443, "HTTPS listen port (used only when a TLS source is configured)")
 
 	f.BoolVar(&s.acmeLive, "acme-live", false, "Activate HTTPS via Let's Encrypt production directory")
 	f.BoolVar(&s.acmeTest, "acme-test", false, "Activate HTTPS via Let's Encrypt staging directory (for testing)")
-	f.StringVar(&s.domain, "domain", "", "Hostname the ACME client is allowed to issue for; MUST match the participant's GOBL Net address")
+	f.StringVar(&s.domain, "domain", "", "Serve a single domain from the config dir; also the hostname the ACME client is allowed to issue for")
 	f.StringVar(&s.acmeEmail, "acme-email", "", "Account email for ACME registration")
 	f.StringVar(&s.certDir, "cert-dir", "", "Directory to cache ACME-issued certificates (default <config-dir>/certs)")
 	f.StringVar(&s.tlsCert, "tls-cert", "", "PEM-encoded TLS certificate; activates HTTPS with file-based TLS")
 	f.StringVar(&s.tlsKey, "tls-key", "", "PEM-encoded TLS private key paired with --tls-cert")
+
+	f.StringSliceVar(&s.authorities, "authority", nil, "Additional trusted Authority address (repeatable; supplements the default lookup.gobl.org)")
+	f.BoolVar(&s.allowUnverified, "allow-unverified", false, "Accept senders whose endorsement lacks a confirmed verifier — for sandbox environments and testing")
 
 	return cmd
 }
@@ -92,27 +91,15 @@ func (s *netServeOpts) runE(cmd *cobra.Command, _ []string) error {
 
 		CertFile: s.tlsCert,
 		KeyFile:  s.tlsKey,
-	}
 
-	// Manual single-identity mode: triggered by an explicit --party or
-	// --keys-dir. Unset companion paths default to the flat config-dir
-	// layout.
-	if cmd.Flags().Changed("party") || cmd.Flags().Changed("keys-dir") {
-		opts.PartyFile = orDefault(s.partyFile, filepath.Join(s.configDir, "party.json"))
-		opts.KeysDir = orDefault(s.keysDir, filepath.Join(s.configDir, "keys"))
-		opts.PrivateKeyFile = orDefault(s.privateKey, filepath.Join(s.configDir, "private.jwk"))
-		opts.InboxDir = orDefault(s.inboxDir, filepath.Join(s.configDir, "inbox"))
+		AllowUnverified: s.allowUnverified,
+	}
+	for _, a := range s.authorities {
+		opts.Authorities = append(opts.Authorities, goblnet.Address(a))
 	}
 
 	ctx := commandContext(cmd)
 	return ops.NetServe(ctx, opts)
-}
-
-func orDefault(v, def string) string {
-	if v != "" {
-		return v
-	}
-	return def
 }
 
 func (s *netServeOpts) validate() error {

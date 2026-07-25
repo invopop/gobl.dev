@@ -21,5 +21,7 @@ func (n *netOpts) cmd() *cobra.Command {
 	cmd.AddCommand(netServe(n.rootOpts).cmd())
 	cmd.AddCommand(netSend(n.rootOpts).cmd())
 	cmd.AddCommand(netWho(n.rootOpts).cmd())
+	cmd.AddCommand(netRequests(n.rootOpts).cmd())
+	cmd.AddCommand(netApprove(n.rootOpts).cmd())
 	return cmd
 }

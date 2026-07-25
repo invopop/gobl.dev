@@ -3,11 +3,14 @@ package ops
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/dsig"
@@ -18,69 +21,124 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// hostRewrite routes every request to base, regardless of the request's
-// host, so a test can use a real domain identity while talking to an
-// httptest server.
-type hostRewrite struct{ base string }
+// testRewriteFetcher rewrites every well-known https URL to a fixed
+// test-server base so ops-layer tests can exercise real HTTP without
+// TLS. Test-only: production clients always dial the address itself.
+type testRewriteFetcher struct {
+	base  string
+	inner *net.HTTPFetcher
+}
 
-func (h hostRewrite) RoundTrip(req *http.Request) (*http.Response, error) {
-	u, _ := url.Parse(h.base)
-	req.URL.Scheme = u.Scheme
-	req.URL.Host = u.Host
-	return http.DefaultTransport.RoundTrip(req)
+func (f *testRewriteFetcher) rewrite(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+	bu, err := url.Parse(f.base)
+	if err != nil {
+		return raw
+	}
+	u.Scheme = bu.Scheme
+	u.Host = bu.Host
+	return u.String()
+}
+
+func (f *testRewriteFetcher) Fetch(ctx context.Context, raw string, header http.Header) ([]byte, error) {
+	return f.inner.Fetch(ctx, f.rewrite(raw), header)
+}
+
+func (f *testRewriteFetcher) Post(ctx context.Context, raw string, body []byte, header http.Header) error {
+	return f.inner.Post(ctx, f.rewrite(raw), body, header)
+}
+
+// routeTo returns a fetcher that rewrites every well-known URL to the
+// given httptest server, permitting loopback dials.
+func routeTo(srvURL string) net.Fetcher {
+	return &testRewriteFetcher{
+		base:  srvURL,
+		inner: &net.HTTPFetcher{Client: &http.Client{Timeout: 5 * time.Second}},
+	}
+}
+
+// domainPrivateKey reads the private key InitDomain generated for a
+// domain under configDir.
+func domainPrivateKey(t *testing.T, configDir, domain string) *dsig.PrivateKey {
+	t.Helper()
+	dc := domainConfigFor(configDir, domain)
+	privBytes, err := os.ReadFile(dc.PrivateKeyFile)
+	require.NoError(t, err)
+	key := new(dsig.PrivateKey)
+	require.NoError(t, json.Unmarshal(privBytes, key))
+	return key
+}
+
+// serveDomainFrom stands up the handler for an InitDomain-scaffolded
+// domain whose client resolves the peer's published key.
+func serveDomainFrom(t *testing.T, configDir, domain string) *httptest.Server {
+	t.Helper()
+	dc := domainConfigFor(configDir, domain)
+	h, err := buildDomainHandler(dc, serveOpts(&mapFetcher{data: map[string][]byte{
+		net.Address(testPeerDomain).KeyURL(testPeerKey.ID()): jwkBytes(t, testPeerKey),
+	}}))
+	require.NoError(t, err)
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	return srv
 }
 
 func TestNetWho(t *testing.T) {
 	configDir := t.TempDir()
 	initTestDomain(t, configDir, "acme.example")
-	dc := domainConfigFor(configDir, "acme.example")
-
-	// The served domain's client resolves the caller's per-key endpoint
-	// to verify the incoming request.
-	serverClient := net.NewClient(net.WithFetcher(&mapFetcher{data: map[string][]byte{
-		net.Address(testPeerDomain).KeyURL(testPeerKey.ID()): jwkBytes(t, testPeerKey),
-	}}))
-	handler, err := buildDomainHandler(dc, serverClient, discardLog())
-	require.NoError(t, err)
-	srv := httptest.NewServer(handler)
-	defer srv.Close()
-
-	// Read the freshly-generated private key for acme.example so the
-	// test fetcher can serve its public counterpart at /keys/<kid>.
-	privBytes, err := os.ReadFile(dc.PrivateKeyFile)
-	require.NoError(t, err)
-	targetKey := new(dsig.PrivateKey)
-	require.NoError(t, json.Unmarshal(privBytes, targetKey))
+	srv := serveDomainFrom(t, configDir, "acme.example")
 
 	env, err := NetWho(context.Background(), &NetWhoOptions{
-		Target:    "acme.example",
-		From:      net.Address(testPeerDomain),
-		FromKey:   testPeerKey,
-		FromParty: &org.Party{Name: "Peer"},
-		Insecure:  true,
-		// POSTs to http://acme.example/... but routed to the test server.
-		Client: &http.Client{Transport: hostRewrite{base: srv.URL}},
-		// Resolves the target's per-key endpoint (the served domain's
-		// published key).
-		Fetcher: &mapFetcher{data: map[string][]byte{
-			"http://acme.example" + net.KeyPath(targetKey.ID()): jwkBytes(t, targetKey),
-		}},
+		Target:  "acme.example",
+		From:    net.Address(testPeerDomain),
+		FromKey: testPeerKey,
+		// Routes every well-known URL — the who lookup and the
+		// target's per-key endpoint — to the test server.
+		Fetcher: routeTo(srv.URL),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, env)
 	require.True(t, env.Signed(), "returned envelope retains the target's signature")
 
-	// The signed payload binds the response to the caller.
+	// The static who response is the target's self-signature, not
+	// bound to any caller.
 	p, err := head.SignedPayload(env.Signatures[0])
 	require.NoError(t, err)
 	assert.Equal(t, net.Address("acme.example").URI(), p.Iss)
-	assert.Equal(t, net.Address(testPeerDomain).URI(), p.Aud)
+	assert.Empty(t, p.Aud)
 
 	party, ok := env.Extract().(*org.Party)
 	require.True(t, ok)
 	assert.Equal(t, "acme.example", party.Name)
 	require.Len(t, party.Endpoints, 1)
 	assert.Equal(t, "gobl:acme.example", party.Endpoints[0].URI.String())
+}
+
+func TestNetWhoPending(t *testing.T) {
+	configDir := t.TempDir()
+	initTestDomain(t, configDir, "acme.example")
+	// Mark the served domain for deferred disclosure.
+	dc := domainConfigFor(configDir, "acme.example")
+	require.NoError(t, os.WriteFile(dc.WhoDeferredFile, nil, 0o644))
+	srv := serveDomainFrom(t, configDir, "acme.example")
+
+	callerDir := t.TempDir()
+	_, err := NetWho(context.Background(), &NetWhoOptions{
+		Target:    "acme.example",
+		From:      net.Address(testPeerDomain),
+		FromKey:   testPeerKey,
+		ConfigDir: callerDir,
+		Fetcher:   routeTo(srv.URL),
+	})
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, net.ErrPending))
+
+	// The pending state was recorded so the caller's inbox will accept
+	// the party envelope the target may deliver later.
+	assert.FileExists(t, filepath.Join(callerDir, testPeerDomain, "who-pending", "acme.example"))
 }
 
 func TestNetWhoMissingFrom(t *testing.T) {
@@ -105,13 +163,10 @@ func staticHandler(status int, body string) http.Handler {
 func newWhoOpts(t *testing.T, target string, srvURL string) *NetWhoOptions {
 	t.Helper()
 	return &NetWhoOptions{
-		Target:    net.Address(target),
-		From:      net.Address(testPeerDomain),
-		FromKey:   testPeerKey,
-		FromParty: &org.Party{Name: "Peer"},
-		Insecure:  true,
-		Client:    &http.Client{Transport: hostRewrite{base: srvURL}},
-		Fetcher:   &mapFetcher{data: map[string][]byte{}},
+		Target:  net.Address(target),
+		From:    net.Address(testPeerDomain),
+		FromKey: testPeerKey,
+		Fetcher: routeTo(srvURL),
 	}
 }
 
@@ -128,7 +183,7 @@ func TestNetWhoInvalidResponseJSON(t *testing.T) {
 	defer srv.Close()
 	_, err := NetWho(context.Background(), newWhoOpts(t, "acme.example", srv.URL))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid /who response")
+	assert.Contains(t, err.Error(), "invalid who envelope")
 }
 
 func TestNetWhoUnsignedResponse(t *testing.T) {
@@ -140,69 +195,65 @@ func TestNetWhoUnsignedResponse(t *testing.T) {
 }
 
 // TestNetWhoResponseWrongIssuer: response is signed but by the peer
-// (i.e., not by the target). Verification loop finds no matching iss.
+// (i.e., not by the target) — the verified issuer does not match the
+// fetched address.
 func TestNetWhoResponseWrongIssuer(t *testing.T) {
-	// Build a signed envelope where iss/aud are reversed from what NetWho
-	// expects to find on a /who response.
 	env, err := gobl.Envelop(&org.Party{Name: "Wrong"})
 	require.NoError(t, err)
-	// iss = peer (caller) — but NetWho expects iss=target.
-	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI()), head.WithAudience(net.Address(testServeDomain).URI())))
+	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI())))
 	body, err := json.Marshal(env)
 	require.NoError(t, err)
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == net.KeyPath(testPeerKey.ID()) {
+			_, _ = w.Write(jwkBytes(t, testPeerKey))
+			return
+		}
 		_, _ = w.Write(body)
 	}))
 	defer srv.Close()
 	_, err = NetWho(context.Background(), newWhoOpts(t, testServeDomain, srv.URL))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not signed by")
+	assert.Contains(t, err.Error(), "does not match address")
 }
 
-// TestNetWhoTransportError exercises the default http.Client + default
-// Fetcher branches plus the client.Do error path. Uses port 1 which is
-// closed on a non-root host.
+// TestNetWhoTransportError exercises the transport error path. Uses
+// port 1 which is closed on a non-root host.
 func TestNetWhoTransportError(t *testing.T) {
 	_, err := NetWho(context.Background(), &NetWhoOptions{
-		Target:    net.Address("127.0.0.1:1"),
-		From:      net.Address(testPeerDomain),
-		FromKey:   testPeerKey,
-		FromParty: &org.Party{Name: "Peer"},
-		Insecure:  true,
-		// Client + Fetcher omitted to exercise the default branches.
+		Target:  net.Address(testServeDomain),
+		From:    net.Address(testPeerDomain),
+		FromKey: testPeerKey,
+		Fetcher: routeTo("http://127.0.0.1:1"),
 	})
 	require.Error(t, err)
 }
 
-// TestNetWhoResponseAudMismatch: response is correctly signed by the
-// target but the aud names someone else.
-func TestNetWhoResponseAudMismatch(t *testing.T) {
+// TestNetWhoResponseAudBound: a who response bound to a caller (aud
+// set) is not a conforming public identity and is rejected.
+func TestNetWhoResponseAudBound(t *testing.T) {
 	configDir := t.TempDir()
 	initTestDomain(t, configDir, testServeDomain)
-	dc := domainConfigFor(configDir, testServeDomain)
-	privBytes, err := os.ReadFile(dc.PrivateKeyFile)
-	require.NoError(t, err)
-	targetKey := new(dsig.PrivateKey)
-	require.NoError(t, json.Unmarshal(privBytes, targetKey))
+	targetKey := domainPrivateKey(t, configDir, testServeDomain)
 
 	env, err := gobl.Envelop(&org.Party{Name: "X"})
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).URI()), head.WithAudience(net.Address("other.example").URI())))
+	require.NoError(t, env.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).URI()), head.WithAudience(net.Address(testPeerDomain).URI())))
 	body, err := json.Marshal(env)
 	require.NoError(t, err)
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == net.KeyPath(targetKey.ID()) {
+			_, _ = w.Write(jwkBytes(t, targetKey))
+			return
+		}
 		_, _ = w.Write(body)
 	}))
 	defer srv.Close()
-	opts := newWhoOpts(t, testServeDomain, srv.URL)
-	opts.Fetcher = &mapFetcher{data: map[string][]byte{
-		"http://" + testServeDomain + net.KeyPath(targetKey.ID()): jwkBytes(t, targetKey),
-	}}
-	_, err = NetWho(context.Background(), opts)
+
+	_, err = NetWho(context.Background(), newWhoOpts(t, testServeDomain, srv.URL))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "audience mismatch")
+	assert.Contains(t, err.Error(), "audience-bound")
 }
 
 // TestNetWhoResponseDocNotParty: response is correctly signed by the
@@ -210,62 +261,25 @@ func TestNetWhoResponseAudMismatch(t *testing.T) {
 func TestNetWhoResponseDocNotParty(t *testing.T) {
 	configDir := t.TempDir()
 	initTestDomain(t, configDir, testServeDomain)
-	dc := domainConfigFor(configDir, testServeDomain)
-	privBytes, err := os.ReadFile(dc.PrivateKeyFile)
-	require.NoError(t, err)
-	targetKey := new(dsig.PrivateKey)
-	require.NoError(t, json.Unmarshal(privBytes, targetKey))
+	targetKey := domainPrivateKey(t, configDir, testServeDomain)
 
 	// Wrap a non-party document.
 	wrap, err := gobl.Envelop(&org.Endpoint{URI: "gobl:x.example"})
 	require.NoError(t, err)
-	require.NoError(t, wrap.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).URI()), head.WithAudience(net.Address(testPeerDomain).URI())))
+	require.NoError(t, wrap.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).URI())))
 	body, err := json.Marshal(wrap)
 	require.NoError(t, err)
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == net.KeyPath(targetKey.ID()) {
+			_, _ = w.Write(jwkBytes(t, targetKey))
+			return
+		}
 		_, _ = w.Write(body)
 	}))
 	defer srv.Close()
 
-	opts := newWhoOpts(t, testServeDomain, srv.URL)
-	opts.Fetcher = &mapFetcher{data: map[string][]byte{
-		"http://" + testServeDomain + net.KeyPath(targetKey.ID()): jwkBytes(t, targetKey),
-	}}
-	_, err = NetWho(context.Background(), opts)
+	_, err = NetWho(context.Background(), newWhoOpts(t, testServeDomain, srv.URL))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not an org.Party")
+	assert.True(t, errors.Is(err, net.ErrPartyMissing))
 }
-
-// TestSchemeRewriteFetcher confirms scheme/host rewriting plus error
-// passthrough for malformed input.
-func TestSchemeRewriteFetcher(t *testing.T) {
-	t.Run("rewrites scheme + host", func(t *testing.T) {
-		var seen string
-		inner := stubFetcher(func(_ context.Context, u string) ([]byte, error) {
-			seen = u
-			return []byte("ok"), nil
-		})
-		f := &schemeRewriteFetcher{base: "http://localhost:1234", inner: inner}
-		body, err := f.Fetch(context.Background(), "https://acme.example/.well-known/gobl/keys/abc")
-		require.NoError(t, err)
-		assert.Equal(t, "ok", string(body))
-		assert.Equal(t, "http://localhost:1234/.well-known/gobl/keys/abc", seen)
-	})
-
-	t.Run("invalid raw URL falls through unchanged", func(t *testing.T) {
-		var seen string
-		inner := stubFetcher(func(_ context.Context, u string) ([]byte, error) {
-			seen = u
-			return []byte("x"), nil
-		})
-		f := &schemeRewriteFetcher{base: "http://localhost:1234", inner: inner}
-		_, err := f.Fetch(context.Background(), "://broken")
-		require.NoError(t, err)
-		assert.Equal(t, "://broken", seen)
-	})
-}
-
-type stubFetcher func(context.Context, string) ([]byte, error)
-
-func (s stubFetcher) Fetch(ctx context.Context, u string) ([]byte, error) { return s(ctx, u) }

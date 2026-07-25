@@ -1,10 +1,8 @@
 package ops
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -70,8 +68,7 @@ func TestJWKSEndpointNewestFirst(t *testing.T) {
 	newerKey := writeKeyWithValidFrom(t, dc.KeysDir, privateKey, &newer)
 	writeRawParty(t, dc.PartyFile, &org.Party{Name: "Me"})
 
-	client := net.NewClient(net.WithFetcher(&mapFetcher{data: map[string][]byte{}}))
-	h, err := buildDomainHandler(dc, client, slog.New(slog.NewTextHandler(new(bytes.Buffer), nil)))
+	h, err := buildDomainHandler(dc, serveOpts(&mapFetcher{data: map[string][]byte{}}))
 	require.NoError(t, err)
 	srv := httptest.NewServer(h)
 	defer srv.Close()

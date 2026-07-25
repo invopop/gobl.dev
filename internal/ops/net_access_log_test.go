@@ -2,50 +2,32 @@ package ops
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/dsig"
-	"github.com/invopop/gobl/head"
 	"github.com/invopop/gobl/net"
-	"github.com/invopop/gobl/note"
-	"github.com/invopop/gobl/org"
-	"github.com/invopop/gobl/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // setupServerWithLog stands up the test domain handler chain with a
 // captured logger so individual test cases can assert on log lines.
-func setupServerWithLog(t *testing.T) (*httptest.Server, *bytes.Buffer, string) {
+func setupServerWithLog(t *testing.T) (*httptest.Server, *bytes.Buffer, domainConfig) {
 	t.Helper()
-	cfg := t.TempDir()
-	dc := domainConfigFor(cfg, testServeDomain)
-	require.NoError(t, os.MkdirAll(filepath.Join(cfg, testServeDomain), 0o700))
-	writeKey(t, dc.KeysDir, privateKey)
-	writePrivate(t, dc.PrivateKeyFile, privateKey)
-	writeRawParty(t, dc.PartyFile, &org.Party{Name: "Me"})
-
-	client := net.NewClient(net.WithFetcher(&mapFetcher{data: map[string][]byte{
-		net.Address(testPeerDomain).KeyURL(testPeerKey.ID()): jwkBytes(t, testPeerKey),
-		net.Address(testServeDomain).KeyURL(privateKey.ID()): jwkBytes(t, privateKey),
-	}}))
-
+	dc := writeServeDomain(t, t.TempDir())
 	buf := new(bytes.Buffer)
-	log := slog.New(slog.NewTextHandler(buf, nil))
-	h, err := buildDomainHandler(dc, client, log)
+	opts := serveOpts(peerFetcher(t))
+	opts.Log = slog.New(slog.NewTextHandler(buf, nil))
+	h, err := buildDomainHandler(dc, opts)
 	require.NoError(t, err)
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
-	return srv, buf, dc.InboxDir
+	return srv, buf, dc
 }
 
 func TestAccessLogKeysLookup(t *testing.T) {
@@ -75,87 +57,89 @@ func TestAccessLogKeysLookup(t *testing.T) {
 	assert.Contains(t, out, "status=404")
 }
 
-func TestAccessLogWhoRejectsBadBody(t *testing.T) {
+func TestAccessLogAuthTokenMissing(t *testing.T) {
 	srv, buf, _ := setupServerWithLog(t)
-	resp, err := http.Post(srv.URL+net.WhoPath, "application/json", strings.NewReader("not json"))
-	require.NoError(t, err)
-	_ = resp.Body.Close()
+	resp := doReq(t, http.MethodGet, srv.URL+net.WhoPath, nil, "")
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	out := buf.String()
-	assert.Contains(t, out, "who.rejected")
-	assert.Contains(t, out, "reason=bad_body")
-	assert.Contains(t, out, "status=400")
-}
-
-func TestAccessLogWhoRejectsVerifyFailed(t *testing.T) {
-	srv, buf, _ := setupServerWithLog(t)
-	// Signed by an iss we don't have keys for.
-	other := dsig.NewES256Key()
-	env, err := gobl.Envelop(&org.Party{Name: "Stranger"})
-	require.NoError(t, err)
-	require.NoError(t, env.Sign(other, head.WithIssuer(net.Address("unknown.example").URI()), head.WithAudience(net.Address(testServeDomain).URI())))
-	body, _ := json.Marshal(env)
-	resp, err := http.Post(srv.URL+net.WhoPath, "application/json", bytes.NewReader(body))
-	require.NoError(t, err)
-	_ = resp.Body.Close()
-	out := buf.String()
-	assert.Contains(t, out, "who.rejected")
-	assert.Contains(t, out, "reason=verify_failed")
+	assert.Contains(t, out, "auth.rejected")
+	assert.Contains(t, out, "reason=token_missing")
 	assert.Contains(t, out, "status=401")
 }
 
-func TestAccessLogWhoNotAllowed(t *testing.T) {
-	cfg := t.TempDir()
-	dc := domainConfigFor(cfg, testServeDomain)
-	require.NoError(t, os.MkdirAll(filepath.Join(cfg, testServeDomain), 0o700))
-	writeKey(t, dc.KeysDir, privateKey)
-	writePrivate(t, dc.PrivateKeyFile, privateKey)
-	writeRawParty(t, dc.PartyFile, &org.Party{Name: "Me"})
-	// allow-list excludes the peer.
-	require.NoError(t, os.WriteFile(dc.AllowFile, []byte(`["other.example"]`), 0o644))
+func TestAccessLogAuthTokenInvalid(t *testing.T) {
+	srv, buf, _ := setupServerWithLog(t)
+	// Token minted by an issuer whose keys the server cannot resolve.
+	other := dsig.NewES256Key()
+	token, err := net.NewToken(other, "unknown.example", testServeDomain, 0)
+	require.NoError(t, err)
+	resp := doReq(t, http.MethodGet, srv.URL+net.WhoPath, nil, "Bearer "+token)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	out := buf.String()
+	assert.Contains(t, out, "auth.rejected")
+	assert.Contains(t, out, "reason=token_invalid")
+	assert.Contains(t, out, "status=401")
+}
 
-	client := net.NewClient(net.WithFetcher(&mapFetcher{data: map[string][]byte{
-		net.Address(testPeerDomain).KeyURL(testPeerKey.ID()): jwkBytes(t, testPeerKey),
-	}}))
+func TestAccessLogWhoServed(t *testing.T) {
+	srv, buf, _ := setupServerWithLog(t)
+	resp := doReq(t, http.MethodGet, srv.URL+net.WhoPath, nil, bearer(t, testServeDomain))
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	out := buf.String()
+	assert.Contains(t, out, "who.served")
+	assert.Contains(t, out, "requester="+testPeerDomain)
+	assert.Contains(t, out, "status=200")
+}
+
+func TestAccessLogWhoDeferred(t *testing.T) {
+	dc := writeServeDomain(t, t.TempDir())
+	require.NoError(t, os.WriteFile(dc.WhoDeferredFile, nil, 0o644))
 	buf := new(bytes.Buffer)
-	log := slog.New(slog.NewTextHandler(buf, nil))
-	h, err := buildDomainHandler(dc, client, log)
+	opts := serveOpts(peerFetcher(t))
+	opts.Log = slog.New(slog.NewTextHandler(buf, nil))
+	h, err := buildDomainHandler(dc, opts)
 	require.NoError(t, err)
 	srv := httptest.NewServer(h)
 	defer srv.Close()
 
-	resp, err := http.Post(srv.URL+net.WhoPath, "application/json", bytes.NewReader(signedRequest(t, testServeDomain)))
-	require.NoError(t, err)
-	_ = resp.Body.Close()
+	resp := doReq(t, http.MethodGet, srv.URL+net.WhoPath, nil, bearer(t, testServeDomain))
+	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 	out := buf.String()
-	assert.Contains(t, out, "who.rejected")
-	assert.Contains(t, out, "reason=not_allowed")
+	assert.Contains(t, out, "who.deferred")
+	assert.Contains(t, out, "requester="+testPeerDomain)
+	assert.Contains(t, out, "status=202")
+}
+
+func TestAccessLogInboxNotEndorsed(t *testing.T) {
+	authorityKey := dsig.NewES256Key()
+	const authority = "kyc.example"
+	dc := writeServeDomain(t, t.TempDir())
+	fetcher := peerFetcher(t)
+	fetcher.data[net.Address(authority).KeyURL(authorityKey.ID())] = jwkBytes(t, authorityKey)
+	fetcher.data[net.Address(testPeerDomain).WhoURL()] = peerWhoBytes(t, nil, "", "")
+	buf := new(bytes.Buffer)
+	opts := serveOpts(fetcher)
+	opts.Log = slog.New(slog.NewTextHandler(buf, nil))
+	opts.Authorities = []net.Address{authority}
+	h, err := buildDomainHandler(dc, opts)
+	require.NoError(t, err)
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+
+	env := signedNoteTo(t, "unendorsed", testServeDomain)
+	resp := doReq(t, http.MethodPost, srv.URL+net.InboxPath, marshalEnv(t, env), bearer(t, testServeDomain))
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode)
+	out := buf.String()
+	assert.Contains(t, out, "inbox.rejected")
+	assert.Contains(t, out, "reason=not_endorsed")
 	assert.Contains(t, out, "status=403")
 }
 
-func TestAccessLogWhoExchangeSuccess(t *testing.T) {
-	srv, buf, _ := setupServerWithLog(t)
-	resp, err := http.Post(srv.URL+net.WhoPath, "application/json", bytes.NewReader(signedRequest(t, testServeDomain)))
-	require.NoError(t, err)
-	_ = resp.Body.Close()
-	out := buf.String()
-	assert.Contains(t, out, "who.exchange")
-	assert.Contains(t, out, "caller="+testPeerDomain)
-	assert.Contains(t, out, "status=200")
-}
-
 func TestAccessLogInboxAccepted(t *testing.T) {
-	srv, buf, inboxDir := setupServerWithLog(t)
+	srv, buf, dc := setupServerWithLog(t)
 
-	msg := &note.Message{Content: "logged"}
-	msg.SetUUID(uuid.V7())
-	env, err := gobl.Envelop(msg)
-	require.NoError(t, err)
-	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI()), head.WithAudience(net.Address(testServeDomain).URI())))
-	body, _ := json.Marshal(env)
-
-	resp, err := http.Post(srv.URL+net.InboxPath, "application/json", bytes.NewReader(body))
-	require.NoError(t, err)
-	_ = resp.Body.Close()
+	env := signedNoteTo(t, "logged", testServeDomain)
+	resp := doReq(t, http.MethodPost, srv.URL+net.InboxPath, marshalEnv(t, env), bearer(t, testServeDomain))
 	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 	out := buf.String()
 	assert.Contains(t, out, "inbox.accepted")
@@ -163,21 +147,15 @@ func TestAccessLogInboxAccepted(t *testing.T) {
 	assert.Contains(t, out, "status=202")
 
 	// Sanity: the envelope was persisted.
-	files, _ := os.ReadDir(inboxDir)
+	files, _ := os.ReadDir(dc.InboxDir)
 	require.Len(t, files, 1)
 }
 
 func TestAccessLogInboxAudMismatch(t *testing.T) {
 	srv, buf, _ := setupServerWithLog(t)
-	msg := &note.Message{Content: "wrong aud"}
-	msg.SetUUID(uuid.V7())
-	env, err := gobl.Envelop(msg)
-	require.NoError(t, err)
-	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI()), head.WithAudience(net.Address("other.example").URI())))
-	body, _ := json.Marshal(env)
-	resp, err := http.Post(srv.URL+net.InboxPath, "application/json", bytes.NewReader(body))
-	require.NoError(t, err)
-	_ = resp.Body.Close()
+	env := signedNoteTo(t, "wrong aud", "other.example")
+	resp := doReq(t, http.MethodPost, srv.URL+net.InboxPath, marshalEnv(t, env), bearer(t, testServeDomain))
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	out := buf.String()
 	assert.Contains(t, out, "inbox.rejected")
 	assert.Contains(t, out, "reason=aud_mismatch")
@@ -222,6 +200,7 @@ func TestCORSAllowAll(t *testing.T) {
 		assert.Equal(t, "*", resp.Header.Get("Access-Control-Allow-Origin"))
 		assert.Contains(t, resp.Header.Get("Access-Control-Allow-Methods"), "GET")
 		assert.Contains(t, resp.Header.Get("Access-Control-Allow-Headers"), "Content-Type")
+		assert.Contains(t, resp.Header.Get("Access-Control-Allow-Headers"), "Authorization")
 		assert.NotEmpty(t, resp.Header.Get("Access-Control-Max-Age"))
 	})
 

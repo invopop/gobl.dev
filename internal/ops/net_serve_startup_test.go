@@ -61,12 +61,14 @@ func writePrivate(t *testing.T, path string, key *dsig.PrivateKey) {
 
 func dcFor(dir, domain string) domainConfig {
 	return domainConfig{
-		Domain:         domain,
-		KeysDir:        filepath.Join(dir, "keys"),
-		PrivateKeyFile: filepath.Join(dir, "private.jwk"),
-		PartyFile:      filepath.Join(dir, "party.json"),
-		InboxDir:       filepath.Join(dir, "inbox"),
-		AllowFile:      filepath.Join(dir, "allow.json"),
+		Domain:          domain,
+		KeysDir:         filepath.Join(dir, "keys"),
+		PrivateKeyFile:  filepath.Join(dir, "private.jwk"),
+		PartyFile:       filepath.Join(dir, "party.json"),
+		InboxDir:        filepath.Join(dir, "inbox"),
+		WhoRequestsDir:  filepath.Join(dir, "who-requests"),
+		WhoPendingDir:   filepath.Join(dir, "who-pending"),
+		WhoDeferredFile: filepath.Join(dir, "who-deferred"),
 	}
 }
 
@@ -156,23 +158,6 @@ func TestEnsureKeysRejectsMismatchedFilename(t *testing.T) {
 	assert.Contains(t, err.Error(), "does not match JWK kid")
 }
 
-func TestNetServeHandlerPartyMissing(t *testing.T) {
-	dir := t.TempDir()
-	dc := dcFor(dir, "")
-	writeKey(t, dc.KeysDir, privateKey)
-	writePrivate(t, dc.PrivateKeyFile, privateKey)
-
-	_, err := NetServeHandler(&NetServeOptions{
-		PartyFile:      dc.PartyFile,
-		KeysDir:        dc.KeysDir,
-		PrivateKeyFile: dc.PrivateKeyFile,
-		InboxDir:       dc.InboxDir,
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "party file not found")
-	assert.Contains(t, err.Error(), "gobl init")
-}
-
 func TestReadPartyEnvelopeRaw(t *testing.T) {
 	dir := t.TempDir()
 	dc := dcFor(dir, "d.example.com")
@@ -180,7 +165,7 @@ func TestReadPartyEnvelopeRaw(t *testing.T) {
 
 	env, err := readPartyEnvelope(dc)
 	require.NoError(t, err)
-	require.False(t, env.Signed(), "party is returned unsigned; /who signs per request")
+	require.False(t, env.Signed(), "party is returned unsigned; serve self-signs it at startup")
 	party, ok := env.Extract().(*org.Party)
 	require.True(t, ok)
 	assert.Equal(t, "Acme", party.Name)
@@ -236,54 +221,6 @@ func TestReadPartyEnvelopeInvalidJSON(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid JSON")
 }
 
-func TestLoadAllowList(t *testing.T) {
-	dir := t.TempDir()
-	dc := dcFor(dir, "x.example")
-
-	t.Run("absent file: present=false", func(t *testing.T) {
-		set, present, err := loadAllowList(dc)
-		require.NoError(t, err)
-		assert.False(t, present)
-		assert.Nil(t, set)
-	})
-
-	t.Run("empty AllowFile path: present=false", func(t *testing.T) {
-		bare := domainConfig{} // AllowFile == ""
-		set, present, err := loadAllowList(bare)
-		require.NoError(t, err)
-		assert.False(t, present)
-		assert.Nil(t, set)
-	})
-
-	t.Run("valid list", func(t *testing.T) {
-		require.NoError(t, os.WriteFile(dc.AllowFile, []byte(`["a.example","b.example"]`), 0o644))
-		set, present, err := loadAllowList(dc)
-		require.NoError(t, err)
-		assert.True(t, present)
-		assert.True(t, set["a.example"])
-		assert.True(t, set["b.example"])
-		assert.False(t, set["c.example"])
-	})
-
-	t.Run("invalid JSON", func(t *testing.T) {
-		require.NoError(t, os.WriteFile(dc.AllowFile, []byte("not json"), 0o644))
-		_, _, err := loadAllowList(dc)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid allow list")
-	})
-}
-
-func TestAllowed(t *testing.T) {
-	t.Run("no list present: any caller accepted", func(t *testing.T) {
-		assert.True(t, allowed(nil, false, "any.example"))
-	})
-	t.Run("list present: only listed caller accepted", func(t *testing.T) {
-		set := map[net.Address]bool{"a.example": true}
-		assert.True(t, allowed(set, true, "a.example"))
-		assert.False(t, allowed(set, true, "b.example"))
-	})
-}
-
 func TestDiscoverDomainsMissingConfigDir(t *testing.T) {
 	// Non-existent config dir returns nil slice, no error.
 	dcs, err := discoverDomains(filepath.Join(t.TempDir(), "does-not-exist"))
@@ -330,18 +267,6 @@ func TestLoadPrivateKeyFileErrors(t *testing.T) {
 }
 
 func TestResolveDomains(t *testing.T) {
-	t.Run("manual mode via KeysDir", func(t *testing.T) {
-		dcs, err := resolveDomains(&NetServeOptions{KeysDir: "/keys", Domain: "x"})
-		require.NoError(t, err)
-		require.Len(t, dcs, 1)
-		assert.Equal(t, "x", dcs[0].Domain)
-		assert.Equal(t, "/keys", dcs[0].KeysDir)
-	})
-	t.Run("manual mode via PartyFile", func(t *testing.T) {
-		dcs, err := resolveDomains(&NetServeOptions{PartyFile: "/p"})
-		require.NoError(t, err)
-		require.Len(t, dcs, 1)
-	})
 	t.Run("no config dir", func(t *testing.T) {
 		_, err := resolveDomains(&NetServeOptions{})
 		require.Error(t, err)
@@ -425,35 +350,31 @@ func TestReadKeysDirIgnoresNonJSON(t *testing.T) {
 	assert.Empty(t, got)
 }
 
-func TestNetServeHandlerDefaultsClient(t *testing.T) {
-	// Omitting Out + Client routes to defaults without panic.
+func TestBuildDomainHandlerDefaultsFetcher(t *testing.T) {
+	// Omitting Out + Fetcher routes to defaults without panic.
+	dir := t.TempDir()
+	dc := dcFor(dir, "solo.example")
+	writeKey(t, dc.KeysDir, privateKey)
+	writePrivate(t, dc.PrivateKeyFile, privateKey)
+	writeRawParty(t, dc.PartyFile, &org.Party{Name: "X"})
+
+	h, err := buildDomainHandler(dc, &NetServeOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, h)
+}
+
+func TestBuildDomainHandlerRequiresDomain(t *testing.T) {
+	// A domainConfig without a domain cannot bind request tokens and is
+	// rejected at startup.
 	dir := t.TempDir()
 	dc := dcFor(dir, "")
 	writeKey(t, dc.KeysDir, privateKey)
 	writePrivate(t, dc.PrivateKeyFile, privateKey)
 	writeRawParty(t, dc.PartyFile, &org.Party{Name: "X"})
 
-	h, err := NetServeHandler(&NetServeOptions{
-		PartyFile:      dc.PartyFile,
-		KeysDir:        dc.KeysDir,
-		PrivateKeyFile: dc.PrivateKeyFile,
-		InboxDir:       dc.InboxDir,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, h)
-}
-
-func TestBuildRouterSingleUnnamed(t *testing.T) {
-	// One unnamed identity: router shortcircuits to a single handler.
-	dir := t.TempDir()
-	dc := dcFor(dir, "")
-	writeKey(t, dc.KeysDir, privateKey)
-	writePrivate(t, dc.PrivateKeyFile, privateKey)
-	writeRawParty(t, dc.PartyFile, &org.Party{Name: "Solo"})
-
-	h, err := buildRouter([]domainConfig{dc}, nil, discardLog())
-	require.NoError(t, err)
-	require.NotNil(t, h)
+	_, err := buildDomainHandler(dc, &NetServeOptions{Log: discardLog()})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "domain is required")
 }
 
 func TestNetServeRunCancel(t *testing.T) {
@@ -540,25 +461,6 @@ func TestNetServeWithACMETest(t *testing.T) {
 	assert.Contains(t, buf.String(), "ACME enabled")
 }
 
-func TestNetServeACMEManualMode(t *testing.T) {
-	// Manual mode (no Domain) + ACME requires named domains -> error.
-	dir := t.TempDir()
-	dc := dcFor(dir, "")
-	writeKey(t, dc.KeysDir, privateKey)
-	writePrivate(t, dc.PrivateKeyFile, privateKey)
-	writeRawParty(t, dc.PartyFile, &org.Party{Name: "Solo"})
-
-	err := NetServe(context.Background(), &NetServeOptions{
-		KeysDir:        dc.KeysDir,
-		PrivateKeyFile: dc.PrivateKeyFile,
-		PartyFile:      dc.PartyFile,
-		InboxDir:       dc.InboxDir,
-		ACMETest:       true,
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "ACME requires named domains")
-}
-
 func TestNetServeCertFileMissing(t *testing.T) {
 	configDir := t.TempDir()
 	initTestDomain(t, configDir, "x.example")
@@ -617,19 +519,6 @@ func TestReadKeysDirNonExistent(t *testing.T) {
 	assert.Contains(t, err.Error(), "read keys dir")
 }
 
-func TestLoadAllowListReadError(t *testing.T) {
-	if os.Geteuid() == 0 {
-		t.Skip("read-permission tests do not apply when running as root")
-	}
-	dir := t.TempDir()
-	dc := dcFor(dir, "")
-	require.NoError(t, os.WriteFile(dc.AllowFile, []byte("[]"), 0o000))
-	t.Cleanup(func() { _ = os.Chmod(dc.AllowFile, 0o644) })
-	_, _, err := loadAllowList(dc)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "read allow list")
-}
-
 func TestDiscoverDomainsReadError(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("read-permission tests do not apply when running as root")
@@ -664,54 +553,45 @@ func TestBuildRouterPropagatesDomainError(t *testing.T) {
 	dc := dcFor(dir, "broken.example")
 	// Write keys/ dir without private.jwk to trigger the "inconsistent" path.
 	writeKey(t, dc.KeysDir, dsig.NewES256Key())
-	_, err := buildRouter([]domainConfig{dc}, nil, discardLog())
+	_, err := buildRouter([]domainConfig{dc}, &NetServeOptions{Log: discardLog()})
 	require.Error(t, err)
 }
 
 // TestBuildDomainHandlerErrors covers the buildDomainHandler error
-// branches that come after ensureKeys: bad private key, missing party,
-// malformed allow-list, and inbox-mkdir-fail.
+// branches that come after ensureKeys: bad private key, malformed
+// party, and inbox-mkdir-fail.
 func TestBuildDomainHandlerErrors(t *testing.T) {
+	opts := &NetServeOptions{Log: discardLog()}
+
 	t.Run("bad private key", func(t *testing.T) {
 		dir := t.TempDir()
 		dc := dcFor(dir, "")
 		writeKey(t, dc.KeysDir, privateKey)
 		require.NoError(t, os.WriteFile(dc.PrivateKeyFile, []byte("not json"), 0o600))
-		_, err := buildDomainHandler(dc, nil, discardLog())
+		_, err := buildDomainHandler(dc, opts)
 		require.Error(t, err)
 	})
 
-	t.Run("missing party", func(t *testing.T) {
+	t.Run("invalid party JSON", func(t *testing.T) {
 		dir := t.TempDir()
-		dc := dcFor(dir, "")
+		dc := dcFor(dir, "d.example.com")
 		writeKey(t, dc.KeysDir, privateKey)
 		writePrivate(t, dc.PrivateKeyFile, privateKey)
-		_, err := buildDomainHandler(dc, nil, discardLog())
+		require.NoError(t, os.WriteFile(dc.PartyFile, []byte("not json"), 0o644))
+		_, err := buildDomainHandler(dc, opts)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "party file not found")
-	})
-
-	t.Run("bad allow list", func(t *testing.T) {
-		dir := t.TempDir()
-		dc := dcFor(dir, "")
-		writeKey(t, dc.KeysDir, privateKey)
-		writePrivate(t, dc.PrivateKeyFile, privateKey)
-		writeRawParty(t, dc.PartyFile, &org.Party{Name: "Me"})
-		require.NoError(t, os.WriteFile(dc.AllowFile, []byte("not json"), 0o644))
-		_, err := buildDomainHandler(dc, nil, discardLog())
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid allow list")
+		assert.Contains(t, err.Error(), "invalid JSON")
 	})
 
 	t.Run("inbox is a file", func(t *testing.T) {
 		dir := t.TempDir()
-		dc := dcFor(dir, "")
+		dc := dcFor(dir, "d.example.com")
 		writeKey(t, dc.KeysDir, privateKey)
 		writePrivate(t, dc.PrivateKeyFile, privateKey)
 		writeRawParty(t, dc.PartyFile, &org.Party{Name: "Me"})
 		// Pre-create dc.InboxDir as a regular file so MkdirAll fails.
 		require.NoError(t, os.WriteFile(dc.InboxDir, []byte("x"), 0o644))
-		_, err := buildDomainHandler(dc, nil, discardLog())
+		_, err := buildDomainHandler(dc, opts)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "create inbox dir")
 	})

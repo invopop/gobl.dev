@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/invopop/gobl/net"
-	"github.com/invopop/gobl/org"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -66,13 +65,13 @@ func writeSelfSignedCert(t *testing.T, dir string) (certPath, keyPath string) {
 	return certPath, keyPath
 }
 
-// runServeOnListeners spins up NetServe with the given options against
-// the supplied listeners and returns a stop function plus the listener
+// runServeOnListeners spins up NetServe for a domain config against
+// fresh listeners and returns a stop function plus the listener
 // addresses for client use.
-func runServeOnListeners(t *testing.T, opts *NetServeOptions, tlsConfig *tls.Config) (httpAddr, httpsAddr string, stop func()) {
+func runServeOnListeners(t *testing.T, dc domainConfig, opts *NetServeOptions, tlsConfig *tls.Config) (httpAddr, httpsAddr string, stop func()) {
 	t.Helper()
 
-	handler, err := NetServeHandler(opts)
+	handler, err := buildDomainHandler(dc, opts)
 	require.NoError(t, err)
 
 	httpHandler := handler
@@ -113,31 +112,21 @@ func TestNetServeFileTLS(t *testing.T) {
 	dir := t.TempDir()
 	certPath, keyPath := writeSelfSignedCert(t, dir)
 
-	// Reuse the party + keys setup from net_serve_test.go.
-	partyFile := filepath.Join(dir, "party.json")
-	keysDir := filepath.Join(dir, "keys")
-	privFile := filepath.Join(dir, "private.jwk")
-	inboxDir := filepath.Join(dir, "inbox")
-
+	// Reuse the standard domain layout from net_serve_test.go.
 	signKey := privateKey
-	writeRawParty(t, partyFile, &org.Party{Name: "TLS Party"})
-	writeKey(t, keysDir, signKey)
-	writePrivate(t, privFile, signKey)
+	dc := writeServeDomain(t, dir)
 
 	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	require.NoError(t, err)
 	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
 
 	opts := &NetServeOptions{
-		PartyFile:      partyFile,
-		KeysDir:        keysDir,
-		PrivateKeyFile: privFile,
-		InboxDir:       inboxDir,
-		CertFile:       certPath,
-		KeyFile:        keyPath,
+		CertFile: certPath,
+		KeyFile:  keyPath,
+		Log:      discardLog(),
 	}
 
-	httpAddr, httpsAddr, stop := runServeOnListeners(t, opts, tlsConfig)
+	httpAddr, httpsAddr, stop := runServeOnListeners(t, dc, opts, tlsConfig)
 	defer stop()
 
 	// HTTP path: plain request works.

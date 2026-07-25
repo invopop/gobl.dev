@@ -62,9 +62,11 @@
 - HTTP access logs on `gobl net serve`: structured `http_request`
   entries for every request plus handler-specific
   `keys.lookup`, `jwks.served`, `auth.rejected` (`token_missing` /
-  `token_invalid` / `token_expired`), `who.served` / `who.deferred` /
+  `token_invalid` / `token_expired` / `token_unavailable`),
+  `who.served` / `who.deferred` /
   `who.approved` / `who.fulfilled`, `inbox.accepted` /
-  `inbox.rejected` (incl. `not_endorsed`), `inbox.write_failed`
+  `inbox.rejected` (incl. `not_endorsed` and `verify_unavailable`),
+  `inbox.write_failed`
   events with high-signal fields (`requester`, `caller`, `envelope`,
   `reason`, `status`, `duration_ms`). The authenticated entries
   double as a request audit log. Startup messages (`generated
@@ -80,6 +82,12 @@
   filesystem ops.
 
 ### Changed
+
+- `gobl net serve`: transient verification failures — the requester's
+  or sender's key/who endpoint unreachable — now answer
+  `503 Service Unavailable` (log reasons `token_unavailable` /
+  `verify_unavailable`) instead of `401`/`403`, so clients retry
+  rather than treating the rejection as final.
 
 - `gobl net serve` `/inbox`: an envelope MUST now be signed with an
   `aud` equal to the inbox owner's address. Envelopes signed without

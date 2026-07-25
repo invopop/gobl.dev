@@ -47,12 +47,13 @@ type NetServeOptions struct {
 	ConfigDir string
 
 	// Authorities supplements the default trusted authority list
-	// (lookup.gobl.org) for the inbox's sender-endorsement policy:
-	// incoming envelopes are accepted only from senders whose who
-	// identity carries a countersignature from a trusted authority
-	// with a confirmed verifier. AllowUnverified relaxes the verifier
-	// requirement (sandbox environments and testing); endorsement
-	// itself is always required.
+	// (net.Authorities, i.e. lookup.gobl.org) for the inbox's
+	// sender-endorsement policy: the server trusts the default plus
+	// these extras. Incoming envelopes are accepted only from senders
+	// whose who identity carries a countersignature from a trusted
+	// authority with a confirmed verifier. AllowUnverified relaxes
+	// the verifier requirement (sandbox environments and testing);
+	// endorsement itself is always required.
 	Authorities     []net.Address
 	AllowUnverified bool
 
@@ -166,14 +167,15 @@ func buildDomainHandler(dc domainConfig, opts *NetServeOptions) (http.Handler, e
 	if fetcher == nil {
 		fetcher = net.NewHTTPFetcher()
 	}
-	copts := []net.ClientOption{
+	// WithAuthorities replaces the client's trust list, and this
+	// server's contract is to supplement the default, so the list is
+	// built as default-plus-extras.
+	authorities := append(append([]net.Address{}, net.Authorities...), opts.Authorities...)
+	client := net.NewClient(
 		net.WithFetcher(fetcher),
 		net.WithIdentity(self, priv),
-	}
-	if len(opts.Authorities) > 0 {
-		copts = append(copts, net.WithAuthorities(opts.Authorities...))
-	}
-	client := net.NewClient(copts...)
+		net.WithAuthorities(authorities...),
+	)
 
 	// A domain without a party file is a receive-only account: /who
 	// answers 204 and deliveries are unaffected.
@@ -266,6 +268,14 @@ func requireAuth(log *slog.Logger, client *net.Client, self net.Address, next ht
 		}
 		requester, err := client.VerifyAuthorization(r.Context(), header, self)
 		if err != nil {
+			// A token that cannot be *checked* (the issuer's key
+			// endpoint is unreachable) is not an invalid token: answer
+			// 503 so the client retries.
+			if errors.Is(err, net.ErrUnavailable) {
+				log.Warn("auth.rejected", "path", r.URL.Path, "reason", "token_unavailable", "remote", r.RemoteAddr, "error", err.Error())
+				http.Error(w, "could not verify request token: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			}
 			reason := "token_invalid"
 			if errors.Is(err, net.ErrTokenExpired) {
 				reason = "token_expired"
@@ -897,6 +907,11 @@ func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr
 
 		sender, err := client.VerifyEnvelope(r.Context(), env, "")
 		if err != nil {
+			if errors.Is(err, net.ErrUnavailable) {
+				log.Warn("inbox.rejected", "reason", "verify_unavailable", "remote", r.RemoteAddr, "error", err.Error())
+				http.Error(w, "could not verify envelope: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			}
 			log.Warn("inbox.rejected", "reason", "verify_failed", "remote", r.RemoteAddr, "error", err.Error())
 			http.Error(w, "signature verification failed: "+err.Error(), http.StatusUnauthorized)
 			return
@@ -931,6 +946,13 @@ func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr
 			_ = os.Remove(pendingFile)
 			log.Info("who.fulfilled", "caller", string(sender))
 		} else if _, err := client.VerifySender(r.Context(), sender, !allowUnverified); err != nil {
+			// A transient failure to resolve the sender's who or a
+			// verifier key must not read as a permanent rejection.
+			if errors.Is(err, net.ErrUnavailable) {
+				log.Warn("inbox.rejected", "reason", "verify_unavailable", "caller", string(sender), "error", err.Error())
+				http.Error(w, "could not verify sender endorsement: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			}
 			log.Warn("inbox.rejected", "reason", "not_endorsed", "caller", string(sender), "error", err.Error())
 			http.Error(w, "sender is not endorsed: "+err.Error(), http.StatusForbidden)
 			return

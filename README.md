@@ -349,13 +349,13 @@ The top-level `--json` flag toggles the format:
 | `http_request`       | INFO  | `method`, `path`, `host`, `remote`, `status`, `duration_ms`                       |
 | `keys.lookup`        | INFO  | `kid`, `found`                                                                    |
 | `jwks.served`        | INFO  | `count`                                                                           |
-| `auth.rejected`      | WARN  | `path`, `reason` (`token_missing`/`token_invalid`/`token_expired`), `remote`, `error` |
+| `auth.rejected`      | WARN  | `path`, `reason` (`token_missing`/`token_invalid`/`token_expired`/`token_unavailable` — the last answers `503`, retry), `remote`, `error` |
 | `who.served`         | INFO  | `requester` (verified token `iss` as FQDN), `status` (200/204)                    |
 | `who.deferred`       | INFO  | `requester` — request recorded, answered 202                                      |
 | `who.approved`       | INFO  | `requester` — party delivered by `gobl net approve`                               |
 | `who.fulfilled`      | INFO  | `caller` — party envelope answering a pending /who request accepted               |
 | `inbox.accepted`     | INFO  | `caller`, `envelope` (UUID)                                                       |
-| `inbox.rejected`     | WARN  | `reason` (`bad_body`/`validation`/`verify_failed`/`aud_missing`/`aud_mismatch`/`not_endorsed`)  |
+| `inbox.rejected`     | WARN  | `reason` (`bad_body`/`validation`/`verify_failed`/`aud_missing`/`aud_mismatch`/`not_endorsed`/`verify_unavailable` — the last answers `503`, retry)  |
 | `inbox.write_failed` | ERROR | `caller`, `envelope`, `error`                                                     |
 
 The `auth.rejected` and `who.served`/`who.deferred` entries double as

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -24,14 +25,22 @@ import (
 
 type mapFetcher struct {
 	data map[string][]byte
+	errs map[string]error
 }
 
 func (m *mapFetcher) Fetch(_ context.Context, url string, _ http.Header) ([]byte, error) {
+	if err, ok := m.errs[url]; ok {
+		return nil, err
+	}
 	body, ok := m.data[url]
 	if !ok {
 		return nil, net.ErrFetchFailed
 	}
 	return body, nil
+}
+
+func (m *mapFetcher) Post(_ context.Context, _ string, _ []byte, _ http.Header) error {
+	return net.ErrFetchFailed
 }
 
 // jwkBytes returns the single-JWK bytes served at the per-key endpoint
@@ -562,4 +571,62 @@ func readDirNames(dir string) ([]string, error) {
 		names = append(names, e.Name())
 	}
 	return names, nil
+}
+
+func TestNetServeTokenVerificationUnavailable(t *testing.T) {
+	// The requester's key endpoint is unreachable (503): the server
+	// must answer 503 so the client retries, not 401.
+	dc := writeServeDomain(t, t.TempDir())
+	fetcher := peerFetcher(t)
+	fetcher.errs = map[string]error{
+		net.Address(testPeerDomain).KeyURL(testPeerKey.ID()): fmt.Errorf("%w: HTTP 503", net.ErrUnavailable),
+	}
+	h, err := buildDomainHandler(dc, serveOpts(fetcher))
+	require.NoError(t, err)
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+
+	resp := doReq(t, http.MethodGet, srv.URL+net.WhoPath, nil, bearer(t, testServeDomain))
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+}
+
+func TestNetServeAuthoritySupplementsDefault(t *testing.T) {
+	// --authority supplements the default trust list: a sender
+	// endorsed by the DEFAULT authority (lookup.gobl.org) must still
+	// be accepted when extras are configured.
+	defaultAuthority := net.Address("lookup.gobl.org")
+	defaultKey := dsig.NewES256Key()
+
+	dc := writeServeDomain(t, t.TempDir())
+	fetcher := peerFetcher(t)
+	fetcher.data[defaultAuthority.KeyURL(defaultKey.ID())] = jwkBytes(t, defaultKey)
+	fetcher.data[net.Address(testPeerDomain).WhoURL()] = peerWhoBytes(t, defaultKey, defaultAuthority, defaultAuthority)
+
+	opts := serveOpts(fetcher) // configures the testAuthority extra
+	h, err := buildDomainHandler(dc, opts)
+	require.NoError(t, err)
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+
+	env := signedNoteTo(t, "endorsed by the default authority", testServeDomain)
+	resp := doReq(t, http.MethodPost, srv.URL+net.InboxPath, marshalEnv(t, env), bearer(t, testServeDomain))
+	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
+}
+
+func TestNetServeEndorsementUnavailable(t *testing.T) {
+	// The sender's who endpoint cannot be reached while checking the
+	// endorsement: 503, not a permanent 403.
+	dc := writeServeDomain(t, t.TempDir())
+	fetcher := peerFetcher(t)
+	fetcher.errs = map[string]error{
+		net.Address(testPeerDomain).WhoURL(): fmt.Errorf("%w: HTTP 503", net.ErrUnavailable),
+	}
+	h, err := buildDomainHandler(dc, serveOpts(fetcher))
+	require.NoError(t, err)
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+
+	env := signedNoteTo(t, "transient who outage", testServeDomain)
+	resp := doReq(t, http.MethodPost, srv.URL+net.InboxPath, marshalEnv(t, env), bearer(t, testServeDomain))
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }

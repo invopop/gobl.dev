@@ -17,6 +17,9 @@ import (
 	"github.com/invopop/gobl/rules"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/flimzy/testy"
+
+	// Register the full addon set so the schema list matches production.
+	_ "github.com/invopop/gobl.dev/bundle"
 )
 
 func TestBulk(t *testing.T) { //nolint:gocyclo
@@ -49,15 +52,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		},
 	})
-	tests.Add("one verification", func(t *testing.T) interface{} {
+	tests.Add("one verification", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/success.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "verify",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":      base64.StdEncoding.EncodeToString(payload),
 				"publickey": publicKey,
 			},
@@ -83,13 +86,13 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("two verifications", func(_ *testing.T) interface{} {
-		req1, _ := json.Marshal(map[string]interface{}{
+	tests.Add("two verifications", func(_ *testing.T) any {
+		req1, _ := json.Marshal(map[string]any{
 			"action":  "sleep",
 			"req_id":  "abc",
 			"payload": "10ms",
 		})
-		req2, _ := json.Marshal(map[string]interface{}{
+		req2, _ := json.Marshal(map[string]any{
 			"action":  "sleep",
 			"req_id":  "def",
 			"payload": "50ms",
@@ -118,15 +121,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("success then failure", func(t *testing.T) interface{} {
+	tests.Add("success then failure", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/success.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "verify",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":      base64.StdEncoding.EncodeToString(payload),
 				"publickey": publicKey,
 			},
@@ -153,8 +156,8 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("non-fatal payload error", func(t *testing.T) interface{} {
-		req, err := json.Marshal(map[string]interface{}{
+	tests.Add("non-fatal payload error", func(t *testing.T) any {
+		req, err := json.Marshal(map[string]any{
 			"action":  "verify",
 			"req_id":  "asdf",
 			"payload": "not an object",
@@ -180,11 +183,11 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("non-fatal data error", func(t *testing.T) interface{} {
-		req, err := json.Marshal(map[string]interface{}{
+	tests.Add("non-fatal data error", func(t *testing.T) any {
+		req, err := json.Marshal(map[string]any{
 			"action": "verify",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":      json.RawMessage(`"oink"`),
 				"publickey": publicKey,
 			},
@@ -210,15 +213,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("one build, already signed", func(t *testing.T) interface{} {
+	tests.Add("one build, already signed", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/success.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "build",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":       base64.StdEncoding.EncodeToString(payload),
 				"privatekey": privateKey,
 			},
@@ -246,15 +249,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("one build, field errors", func(t *testing.T) interface{} {
+	tests.Add("one build, field errors", func(t *testing.T) any {
 		payload := []byte(`{
 			"$schema":"https://gobl.org/draft-0/note/message",
 			"title":"This is a title"
 		}`)
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "build",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data": base64.StdEncoding.EncodeToString(payload),
 				// "privatekey": privateKey,
 			},
@@ -280,15 +283,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("one build, success", func(t *testing.T) interface{} {
+	tests.Add("one build, success", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/nosig.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "build",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":       base64.StdEncoding.EncodeToString(payload),
 				"privatekey": privateKey,
 			},
@@ -316,14 +319,14 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("build, invalid doc type", func(t *testing.T) interface{} {
+	tests.Add("build, invalid doc type", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/nosig.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, _ := json.Marshal(map[string]interface{}{
+		req, _ := json.Marshal(map[string]any{
 			"action": "build",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data": base64.StdEncoding.EncodeToString(payload),
 				"type": "chicken",
 			},
@@ -344,14 +347,14 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("build, invalid template", func(t *testing.T) interface{} {
+	tests.Add("build, invalid template", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/nosig.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, _ := json.Marshal(map[string]interface{}{
+		req, _ := json.Marshal(map[string]any{
 			"action": "build",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":     base64.StdEncoding.EncodeToString(payload),
 				"template": "chicken",
 			},
@@ -372,8 +375,8 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("non-fatal payload error, build", func(t *testing.T) interface{} {
-		req, err := json.Marshal(map[string]interface{}{
+	tests.Add("non-fatal payload error, build", func(t *testing.T) any {
+		req, err := json.Marshal(map[string]any{
 			"action":  "build",
 			"req_id":  "asdf",
 			"payload": "not an object",
@@ -399,11 +402,11 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("non-fatal data error, build", func(t *testing.T) interface{} {
-		req, err := json.Marshal(map[string]interface{}{
+	tests.Add("non-fatal data error, build", func(t *testing.T) any {
+		req, err := json.Marshal(map[string]any{
 			"action": "build",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":      base64.StdEncoding.EncodeToString([]byte(`"oink"`)),
 				"publickey": publicKey,
 			},
@@ -429,15 +432,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("correct, success", func(t *testing.T) interface{} {
+	tests.Add("correct, success", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/success.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "correct",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":    base64.StdEncoding.EncodeToString(payload),
 				"options": []byte(`{"type":"credit-note","ext":{"es-facturae-correction":"01"}}`),
 			},
@@ -465,15 +468,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("correct, options", func(t *testing.T) interface{} {
+	tests.Add("correct, options", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/success.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "correct",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":   base64.StdEncoding.EncodeToString(payload),
 				"schema": true,
 			},
@@ -501,15 +504,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("replicate, success", func(t *testing.T) interface{} {
+	tests.Add("replicate, success", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/success.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "replicate",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data": base64.StdEncoding.EncodeToString(payload),
 			},
 		})
@@ -536,8 +539,8 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("unknown action", func(t *testing.T) interface{} {
-		req, err := json.Marshal(map[string]interface{}{
+	tests.Add("unknown action", func(t *testing.T) any {
+		req, err := json.Marshal(map[string]any{
 			"action": "frobnicate",
 			"req_id": "asdf",
 		})
@@ -562,8 +565,8 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("keygen", func(t *testing.T) interface{} {
-		req, err := json.Marshal(map[string]interface{}{
+	tests.Add("keygen", func(t *testing.T) any {
+		req, err := json.Marshal(map[string]any{
 			"action": "keygen",
 			"req_id": "asdf",
 		})
@@ -623,7 +626,7 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			{SeqID: 2, IsFinal: true},
 		},
 	})
-	tests.Add("schema", func(_ *testing.T) interface{} {
+	tests.Add("schema", func(_ *testing.T) any {
 		return tt{
 			opts: &BulkOptions{
 				In: strings.NewReader(`{"action":"schema","payload":{"path":"head/stamp"}}`),
@@ -665,7 +668,7 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("regime", func(_ *testing.T) interface{} {
+	tests.Add("regime", func(_ *testing.T) any {
 		return tt{
 			opts: &BulkOptions{
 				In: strings.NewReader(`{"action":"regime","payload":{"code":"es"}}`),
@@ -697,15 +700,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			{SeqID: 3, IsFinal: true},
 		},
 	})
-	tests.Add("sign, explicit key given", func(t *testing.T) interface{} {
+	tests.Add("sign, explicit key given", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/nosig.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "sign",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data":       base64.StdEncoding.EncodeToString(payload),
 				"privatekey": privateKey,
 			},
@@ -730,15 +733,15 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 			},
 		}
 	})
-	tests.Add("sign, default key", func(t *testing.T) interface{} {
+	tests.Add("sign, default key", func(t *testing.T) any {
 		payload, err := os.ReadFile("testdata/nosig.json")
 		if err != nil {
 			t.Fatal(err)
 		}
-		req, err := json.Marshal(map[string]interface{}{
+		req, err := json.Marshal(map[string]any{
 			"action": "sign",
 			"req_id": "asdf",
-			"payload": map[string]interface{}{
+			"payload": map[string]any{
 				"data": base64.StdEncoding.EncodeToString(payload),
 			},
 		})
@@ -775,12 +778,12 @@ func TestBulk(t *testing.T) { //nolint:gocyclo
 		}
 		for i, row := range results {
 			if tt.want[i].Payload != nil {
-				var got map[string]interface{}
+				var got map[string]any
 				if err := json.Unmarshal(row.Payload, &got); err != nil {
 					t.Errorf("row %d: %v", i, err)
 					continue
 				}
-				var want map[string]interface{}
+				var want map[string]any
 				if err := json.Unmarshal(tt.want[i].Payload, &want); err != nil {
 					t.Errorf("row %d: %v", i, err)
 					continue

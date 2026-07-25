@@ -4,15 +4,17 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
+	"log/slog"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"syscall"
 
-	"github.com/invopop/gobl"
 	"github.com/spf13/cobra"
+
+	"github.com/invopop/gobl"
 
 	// Register the full GOBL addon set (see bundle/bundle.go).
 	_ "github.com/invopop/gobl.dev/bundle"
@@ -105,10 +107,34 @@ func encode(in any, out io.WriteCloser, indent bool) error {
 	return enc.Encode(in)
 }
 
-func printError(err error) {
-	enc := json.NewEncoder(os.Stderr)
-	enc.SetIndent("", "\t") // always indent errors
-	if err = enc.Encode(err); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
+// newLogger builds the slog.Logger used for all operator-facing log
+// output. The result writes one entry per line to stderr; result
+// output (signed envelopes, /who party JSON, version) lives on stdout
+// and is not affected by this flag.
+func newLogger(jsonMode bool) *slog.Logger {
+	opts := &slog.HandlerOptions{Level: slog.LevelInfo}
+	var h slog.Handler
+	if jsonMode {
+		h = slog.NewJSONHandler(os.Stderr, opts)
+	} else {
+		h = slog.NewTextHandler(os.Stderr, opts)
 	}
+	return slog.New(h)
+}
+
+func printError(err error) {
+	// Normalise to a *gobl.Error so every report carries a "key" and
+	// (when present) a "message" + structured faults.
+	var ge *gobl.Error
+	if !errors.As(err, &ge) {
+		ge = gobl.ErrInternal.WithCause(err)
+	}
+	attrs := []any{"key", ge.Key().String()}
+	if msg := ge.Message(); msg != "" {
+		attrs = append(attrs, "message", msg)
+	}
+	if faults := ge.Faults(); faults != nil {
+		attrs = append(attrs, "faults", faults)
+	}
+	slog.Error("command failed", attrs...)
 }

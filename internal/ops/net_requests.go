@@ -112,8 +112,8 @@ func NetApprove(ctx context.Context, opts *NetApproveOptions) error {
 		}
 	}
 	if err := env.Sign(priv,
-		head.WithIssuer(self.URI()),
-		head.WithAudience(opts.Requester.URI())); err != nil {
+		head.WithIssuer(self.String()),
+		head.WithAudience(opts.Requester.String())); err != nil {
 		return fmt.Errorf("net approve: sign party: %w", err)
 	}
 

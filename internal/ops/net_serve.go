@@ -219,14 +219,16 @@ func buildDomainHandler(dc domainConfig, opts *NetServeOptions) (http.Handler, e
 func signedPartyBytes(env *gobl.Envelope, priv *dsig.PrivateKey, self net.Address) ([]byte, error) {
 	signed := false
 	if env.Signed() && self != "" {
-		if p, err := head.SignedPayload(env.Signatures[0]); err == nil && p.Iss == self.URI() && p.Aud == "" {
-			signed = true
+		if p, err := head.SignedPayload(env.Signatures[0]); err == nil && p.Aud == "" {
+			if got, gerr := net.ParseAddress(p.Iss); gerr == nil && got == self {
+				signed = true
+			}
 		}
 	}
 	if !signed {
 		opts := []head.SignOption{}
 		if self != "" {
-			opts = append(opts, head.WithIssuer(self.URI()))
+			opts = append(opts, head.WithIssuer(self.String()))
 		}
 		if err := env.Sign(priv, opts...); err != nil {
 			return nil, fmt.Errorf("net serve: sign party: %w", err)
@@ -872,7 +874,6 @@ func handleWho(log *slog.Logger, partyEnvBytes []byte, deferred bool, requestsDi
 // endorsement.
 func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr net.Address, allowUnverified bool) http.Handler {
 	dir := dc.InboxDir
-	self := selfAddr.URI()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(io.LimitReader(r.Body, netInboxMaxBody))
 		if err != nil {
@@ -914,8 +915,10 @@ func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr
 			http.Error(w, "envelope must be signed with an audience matching this inbox", http.StatusUnauthorized)
 			return
 		}
-		if p.Aud != self {
-			log.Warn("inbox.rejected", "reason", "aud_mismatch", "caller", string(sender), "aud", string(p.Aud))
+		// Canonicalize both sides so U-Label or trailing-dot forms
+		// compare equal, mirroring gobl's VerifyEnvelope.
+		if aud, aerr := net.ParseAddress(p.Aud); aerr != nil || aud != selfAddr {
+			log.Warn("inbox.rejected", "reason", "aud_mismatch", "caller", string(sender), "aud", p.Aud)
 			http.Error(w, "envelope audience does not match this inbox", http.StatusUnauthorized)
 			return
 		}

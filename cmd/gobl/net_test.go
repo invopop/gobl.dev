@@ -62,8 +62,8 @@ func signedNoteBody(t *testing.T) []byte {
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
 	require.NoError(t, env.Sign(priv,
-		head.WithIssuer(net.Address("peer.example").URI()),
-		head.WithAudience(net.Address("acme.example").URI())))
+		head.WithIssuer(net.Address("peer.example").String()),
+		head.WithAudience(net.Address("acme.example").String())))
 	out, err := json.Marshal(env)
 	require.NoError(t, err)
 	return out

@@ -28,7 +28,7 @@ func signedNoteEnvelope(t *testing.T, content string) []byte {
 	msg.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI()), head.WithAudience(net.Address(testServeDomain).URI())))
+	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).String()), head.WithAudience(net.Address(testServeDomain).String())))
 	body, err := json.Marshal(env)
 	require.NoError(t, err)
 	return body
@@ -265,8 +265,8 @@ func TestNetRequestsAndApprove(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, env))
 	p, err := headSignedPayload(env)
 	require.NoError(t, err)
-	assert.Equal(t, net.Address(owner).URI(), p.Iss)
-	assert.Equal(t, net.Address(requester).URI(), p.Aud)
+	assert.Equal(t, net.Address(owner).String(), p.Iss)
+	assert.Equal(t, net.Address(requester).String(), p.Aud)
 }
 
 func TestNetRequestsEmpty(t *testing.T) {

@@ -171,8 +171,9 @@ retire it, `rm` to remove it (future requests for that `kid` return `404`).
 
 ### `gobl sign --domain X [--to Y]`
 
-Signs with the key from `~/.config/gobl/<X>/` and stamps `iss=gobl:X` /
-`aud=gobl:Y` into the signed payload (alongside `uuid`, `dig`, and `iat`).
+Signs with the key from `~/.config/gobl/<X>/` and stamps `iss=X` /
+`aud=Y` into the signed payload (alongside `uuid`, `dig`, and `iat`).
+Signed claims carry bare addresses — GOBL Net is implied.
 
 ### `gobl verify`
 
@@ -185,8 +186,8 @@ Two flags activate remote verification:
 ### `gobl net who <address> --from <domain>`
 
 Authenticated identity lookup: GETs the target's `/who` with a bearer
-request token minted from the `--from` identity (`iss=gobl:from`,
-`aud=gobl:address`, short-lived) and prints the target's verified
+request token minted from the `--from` identity (`iss=from`,
+`aud=address`, short-lived) and prints the target's verified
 `org.Party` envelope — including any authority countersignatures the
 target serves alongside its self-signature.
 
@@ -207,7 +208,7 @@ authenticates the request with its own identity.
 
 The envelope's signed `aud` MUST equal `--to`: receiving inboxes reject
 envelopes signed without an audience or bound to a different one (replay
-protection). `gobl sign --domain X --to Y` stamps `aud=gobl:Y` for you.
+protection). `gobl sign --domain X --to Y` stamps `aud=Y` for you.
 
 ### `gobl net requests --domain <domain>`
 
@@ -217,7 +218,7 @@ deferred-disclosure domain has answered `202` and recorded.
 ### `gobl net approve <requester> --domain <domain>`
 
 Approves a deferred `/who` request: signs the domain's party envelope
-for the requester (`iss=gobl:domain`, `aud=gobl:requester`), delivers it
+for the requester (`iss=domain`, `aud=requester`), delivers it
 to the requester's inbox, and clears the recorded request.
 
 ### `gobl net serve`

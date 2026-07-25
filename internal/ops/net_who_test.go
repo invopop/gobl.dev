@@ -107,7 +107,7 @@ func TestNetWho(t *testing.T) {
 	// bound to any caller.
 	p, err := head.SignedPayload(env.Signatures[0])
 	require.NoError(t, err)
-	assert.Equal(t, net.Address("acme.example").URI(), p.Iss)
+	assert.Equal(t, net.Address("acme.example").String(), p.Iss)
 	assert.Empty(t, p.Aud)
 
 	party, ok := env.Extract().(*org.Party)
@@ -200,7 +200,7 @@ func TestNetWhoUnsignedResponse(t *testing.T) {
 func TestNetWhoResponseWrongIssuer(t *testing.T) {
 	env, err := gobl.Envelop(&org.Party{Name: "Wrong"})
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI())))
+	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).String())))
 	body, err := json.Marshal(env)
 	require.NoError(t, err)
 
@@ -238,7 +238,7 @@ func TestNetWhoResponseAudBound(t *testing.T) {
 
 	env, err := gobl.Envelop(&org.Party{Name: "X"})
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).URI()), head.WithAudience(net.Address(testPeerDomain).URI())))
+	require.NoError(t, env.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).String()), head.WithAudience(net.Address(testPeerDomain).String())))
 	body, err := json.Marshal(env)
 	require.NoError(t, err)
 
@@ -266,7 +266,7 @@ func TestNetWhoResponseDocNotParty(t *testing.T) {
 	// Wrap a non-party document.
 	wrap, err := gobl.Envelop(&org.Endpoint{URI: "gobl:x.example"})
 	require.NoError(t, err)
-	require.NoError(t, wrap.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).URI())))
+	require.NoError(t, wrap.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).String())))
 	body, err := json.Marshal(wrap)
 	require.NoError(t, err)
 

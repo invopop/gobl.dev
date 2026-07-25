@@ -140,8 +140,8 @@ func signedNoteTo(t *testing.T, content string, aud net.Address) *gobl.Envelope 
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
 	require.NoError(t, env.Sign(testPeerKey,
-		head.WithIssuer(net.Address(testPeerDomain).URI()),
-		head.WithAudience(aud.URI())))
+		head.WithIssuer(net.Address(testPeerDomain).String()),
+		head.WithAudience(aud.String())))
 	return env
 }
 
@@ -190,7 +190,7 @@ func TestNetServeWho(t *testing.T) {
 
 	p, err := headSignedPayload(env)
 	require.NoError(t, err)
-	assert.Equal(t, net.Address(testServeDomain).URI(), p.Iss, "response is the domain's self-signature")
+	assert.Equal(t, net.Address(testServeDomain).String(), p.Iss, "response is the domain's self-signature")
 	assert.Empty(t, p.Aud, "the static who response is not audience-bound")
 
 	party, ok := env.Extract().(*org.Party)
@@ -324,14 +324,14 @@ func peerWhoBytes(t *testing.T, authKey *dsig.PrivateKey, authority, verifier ne
 	party.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(party)
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI())))
+	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).String())))
 	if authKey != nil {
 		opts := []head.SignOption{
-			head.WithIssuer(authority.URI()),
-			head.WithAudience(net.Address(testPeerDomain).URI()),
+			head.WithIssuer(authority.String()),
+			head.WithAudience(net.Address(testPeerDomain).String()),
 		}
 		if verifier != "" {
-			opts = append(opts, head.WithVerifier(verifier.URI()))
+			opts = append(opts, head.WithVerifier(verifier.String()))
 		}
 		require.NoError(t, env.Sign(authKey, opts...))
 	}
@@ -411,8 +411,8 @@ func TestNetServeInboxEndorsementPolicy(t *testing.T) {
 		env, err := gobl.Envelop(party)
 		require.NoError(t, err)
 		require.NoError(t, env.Sign(testPeerKey,
-			head.WithIssuer(net.Address(testPeerDomain).URI()),
-			head.WithAudience(net.Address(testServeDomain).URI())))
+			head.WithIssuer(net.Address(testPeerDomain).String()),
+			head.WithAudience(net.Address(testServeDomain).String())))
 
 		resp := doReq(t, http.MethodPost, srv.URL+net.InboxPath, marshalEnv(t, env), bearer(t, testServeDomain))
 		assert.Equal(t, http.StatusAccepted, resp.StatusCode)
@@ -498,7 +498,7 @@ func TestNetServeInboxAudMissing(t *testing.T) {
 	msg.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).URI())))
+	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).String())))
 	resp := doReq(t, http.MethodPost, srv.URL+net.InboxPath, marshalEnv(t, env), bearer(t, testServeDomain))
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
@@ -512,7 +512,7 @@ func TestNetServeInboxRejectsBadSignature(t *testing.T) {
 	msg.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(other, head.WithIssuer(net.Address("unknown.example").URI()), head.WithAudience(net.Address(testServeDomain).URI())))
+	require.NoError(t, env.Sign(other, head.WithIssuer(net.Address("unknown.example").String()), head.WithAudience(net.Address(testServeDomain).String())))
 
 	resp := doReq(t, http.MethodPost, srv.URL+net.InboxPath, marshalEnv(t, env), bearer(t, testServeDomain))
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
@@ -529,7 +529,7 @@ func TestSignedPartyBytesPreSigned(t *testing.T) {
 	party.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(party)
 	require.NoError(t, err)
-	require.NoError(t, env.Sign(privateKey, head.WithIssuer(net.Address(testServeDomain).URI())))
+	require.NoError(t, env.Sign(privateKey, head.WithIssuer(net.Address(testServeDomain).String())))
 	want := marshalEnv(t, env)
 
 	got, err := signedPartyBytes(env, privateKey, testServeDomain)

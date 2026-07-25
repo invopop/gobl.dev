@@ -21,7 +21,7 @@
 - `gobl net requests --domain <domain>` / `gobl net approve
   <requester> --domain <domain>`: list and approve deferred `/who`
   requests — approval signs the domain's party for the requester
-  (`aud=gobl:requester`) and delivers it to the requester's inbox.
+  (`aud=requester`) and delivers it to the requester's inbox.
 - `gobl net serve`: HTTPS server with per-key `/.well-known/gobl/keys/<kid>`
   lookups, a bulk `/.well-known/jwks.json` endpoint for browser-based
   JOSE tooling (`jwt.io`-style verifiers), `/who` (authenticated
@@ -48,8 +48,10 @@
   auto-discovers every `<domain>/` directory under the config dir and
   routes by HTTP `Host`. ACME issues for every discovered domain.
 - `gobl sign --domain X [--to Y]`: signs with the key from
-  `~/.config/gobl/<X>/` and stamps `iss=gobl:X` / `aud=gobl:Y` into
-  the signed payload.
+  `~/.config/gobl/<X>/` and stamps `iss=X` / `aud=Y` into the signed
+  payload — signed claims carry bare GOBL Net addresses (FQDNs); the
+  `gobl:` scheme remains only on endpoint URIs and the unsigned
+  header `from`/`to`.
 - `gobl verify`: gains `--address` / `--remote` flags for remote key
   discovery via the new GOBL Net per-key endpoint.
 - Top-level `--json` flag: all operator-facing log output flows
@@ -86,7 +88,7 @@
   `reason=aud_missing` or `reason=aud_mismatch`). This prevents a
   valid envelope from being replayed against multiple inboxes —
   signers must know the recipient at sign time. `gobl sign --domain
-  X --to Y` already stamps `aud=gobl:Y` into the signed payload, so
+  X --to Y` already stamps `aud=Y` into the signed payload, so
   the operator workflow is unchanged; callers that previously sent
   audience-less envelopes to an inbox MUST start setting `--to`.
 - `gobl keygen`: deprecated in favour of `gobl init <domain>`.

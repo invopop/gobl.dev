@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/invopop/gobl"
-	"github.com/invopop/gobl/cbc"
 	"github.com/invopop/gobl/dsig"
 	"github.com/invopop/gobl/head"
 )
@@ -14,11 +13,11 @@ type SignOptions struct {
 	*ParseOptions
 	PrivateKey *dsig.PrivateKey
 
-	// Issuer is the signer's verifiable GOBL Net address (a gobl: URI) and
-	// Audience is the optional GOBL Net audience the signature is bound to;
-	// either may be empty.
-	Issuer   cbc.URI
-	Audience cbc.URI
+	// Issuer is the signer's verifiable GOBL Net address (a bare
+	// FQDN) and Audience is the optional GOBL Net audience the
+	// signature is bound to; either may be empty.
+	Issuer   string
+	Audience string
 }
 
 // Sign parses a GOBL document into an envelope, performs calculations,

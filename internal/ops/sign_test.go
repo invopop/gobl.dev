@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/invopop/gobl"
-	"github.com/invopop/gobl/cbc"
 	"github.com/invopop/gobl/dsig"
 	"github.com/invopop/gobl/head"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +20,7 @@ const noteMessageJSON = `{"$schema":"https://gobl.org/draft-0/note/message","con
 
 // signIss signs the note message with the given iss/aud and round-trips
 // the envelope through JSON (the signed payload is read after parse).
-func signIss(t *testing.T, iss, aud cbc.URI) *gobl.Envelope {
+func signIss(t *testing.T, iss, aud string) *gobl.Envelope {
 	t.Helper()
 	env, err := Sign(context.Background(), &SignOptions{
 		ParseOptions: &ParseOptions{Input: strings.NewReader(noteMessageJSON)},
@@ -38,12 +37,12 @@ func signIss(t *testing.T, iss, aud cbc.URI) *gobl.Envelope {
 }
 
 func TestSignWithIss(t *testing.T) {
-	env := signIss(t, "gobl:billing.invopop.com", "gobl:acme.example")
+	env := signIss(t, "billing.invopop.com", "acme.example")
 	require.True(t, env.Signed())
 	p, err := head.SignedPayload(env.Signatures[0])
 	require.NoError(t, err)
-	assert.Equal(t, cbc.URI("gobl:billing.invopop.com"), p.Iss)
-	assert.Equal(t, cbc.URI("gobl:acme.example"), p.Aud)
+	assert.Equal(t, "billing.invopop.com", p.Iss)
+	assert.Equal(t, "acme.example", p.Aud)
 }
 
 func TestSignWithoutIss(t *testing.T) {

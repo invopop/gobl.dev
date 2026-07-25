@@ -202,7 +202,7 @@ func TestMultiDomainRouter(t *testing.T) {
 		_ = resp.Body.Close()
 		p, err := headSignedPayload(env)
 		require.NoError(t, err)
-		assert.Equal(t, net.Address(host).URI(), p.Iss)
+		assert.Equal(t, net.Address(host).String(), p.Iss)
 		assert.Empty(t, p.Aud, "static who response is not audience-bound")
 	}
 
@@ -219,7 +219,7 @@ func TestMultiDomainRouter(t *testing.T) {
 	msg.SetUUID(uuid.V7())
 	denv, err := gobl.Envelop(msg)
 	require.NoError(t, err)
-	require.NoError(t, denv.Sign(peerKey, head.WithIssuer(net.Address(peer).URI()), head.WithAudience(net.Address("a.example").URI())))
+	require.NoError(t, denv.Sign(peerKey, head.WithIssuer(net.Address(peer).String()), head.WithAudience(net.Address("a.example").String())))
 	body, err := json.Marshal(denv)
 	require.NoError(t, err)
 

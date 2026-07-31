@@ -7,6 +7,7 @@ package bundle
 import (
 	_ "github.com/invopop/gobl.br.nfe/addon"
 	_ "github.com/invopop/gobl.br.nfse/addon"
+	_ "github.com/invopop/gobl.fi.finvoice/addon"
 	_ "github.com/invopop/gobl.fr.ctc/addon"
 	_ "github.com/invopop/gobl.mx.cfdi/addon"
 	_ "github.com/invopop/gobl.pt.saft/addon"

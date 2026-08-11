@@ -329,7 +329,10 @@ func TestNetServeInboxIntermediaryToken(t *testing.T) {
 // countersigned by an authority key naming a verifier.
 func peerWhoBytes(t *testing.T, authKey *dsig.PrivateKey, authority, verifier net.Address) []byte {
 	t.Helper()
-	party := &org.Party{Name: "Peer"}
+	party := &org.Party{
+		Name:      "Peer",
+		Endpoints: []*org.Endpoint{{URI: net.Address(testPeerDomain).URI()}},
+	}
 	party.SetUUID(uuid.V7())
 	env, err := gobl.Envelop(party)
 	require.NoError(t, err)
@@ -415,7 +418,10 @@ func TestNetServeInboxEndorsementPolicy(t *testing.T) {
 		pending := filepath.Join(dc.WhoPendingDir, testPeerDomain)
 		require.NoError(t, os.WriteFile(pending, nil, 0o644))
 
-		party := &org.Party{Name: "Peer"}
+		party := &org.Party{
+			Name:      "Peer",
+			Endpoints: []*org.Endpoint{{URI: net.Address(testPeerDomain).URI()}},
+		}
 		party.SetUUID(uuid.V7())
 		env, err := gobl.Envelop(party)
 		require.NoError(t, err)

@@ -198,7 +198,10 @@ func TestNetWhoUnsignedResponse(t *testing.T) {
 // (i.e., not by the target) — the verified issuer does not match the
 // fetched address.
 func TestNetWhoResponseWrongIssuer(t *testing.T) {
-	env, err := gobl.Envelop(&org.Party{Name: "Wrong"})
+	env, err := gobl.Envelop(&org.Party{
+		Name:      "Wrong",
+		Endpoints: []*org.Endpoint{{URI: net.Address(testPeerDomain).URI()}},
+	})
 	require.NoError(t, err)
 	require.NoError(t, env.Sign(testPeerKey, head.WithIssuer(net.Address(testPeerDomain).String())))
 	body, err := json.Marshal(env)
@@ -214,7 +217,7 @@ func TestNetWhoResponseWrongIssuer(t *testing.T) {
 	defer srv.Close()
 	_, err = NetWho(context.Background(), newWhoOpts(t, testServeDomain, srv.URL))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "does not match address")
+	assert.Contains(t, err.Error(), "identity of")
 }
 
 // TestNetWhoTransportError exercises the transport error path. Uses
@@ -236,7 +239,10 @@ func TestNetWhoResponseAudBound(t *testing.T) {
 	initTestDomain(t, configDir, testServeDomain)
 	targetKey := domainPrivateKey(t, configDir, testServeDomain)
 
-	env, err := gobl.Envelop(&org.Party{Name: "X"})
+	env, err := gobl.Envelop(&org.Party{
+		Name:      "X",
+		Endpoints: []*org.Endpoint{{URI: net.Address(testServeDomain).URI()}},
+	})
 	require.NoError(t, err)
 	require.NoError(t, env.Sign(targetKey, head.WithIssuer(net.Address(testServeDomain).String()), head.WithAudience(net.Address(testPeerDomain).String())))
 	body, err := json.Marshal(env)

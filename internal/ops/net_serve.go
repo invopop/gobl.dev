@@ -914,19 +914,25 @@ func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr
 		}
 
 		// Party envelopes in the identity flows are bearer documents
-		// (spec §8.3) and carry no audience binding; any other document
-		// must have been signed for this inbox — at least one sender
-		// signature with aud equal to this address, searched.
+		// (spec §8.3): the subject is the address the document itself
+		// declares. Any other document must carry a delivery binding —
+		// a valid signature with aud equal to this inbox.
 		_, isParty := env.Extract().(*org.Party)
-		expectAud := selfAddr
+		var sender net.Address
 		if isParty {
-			expectAud = ""
+			sender, err = client.VerifyParty(r.Context(), env)
+		} else {
+			sender, err = client.VerifyDelivery(r.Context(), env, selfAddr)
 		}
-		sender, err := client.VerifyEnvelope(r.Context(), env, expectAud)
 		if err != nil {
-			if errors.Is(err, net.ErrUnavailable) {
+			switch {
+			case errors.Is(err, net.ErrUnavailable):
 				log.Warn("inbox.rejected", "reason", "verify_unavailable", "remote", r.RemoteAddr, "error", err.Error())
 				http.Error(w, "could not verify envelope: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			case errors.Is(err, net.ErrPartyMissing):
+				log.Warn("inbox.rejected", "reason", "invalid_party", "remote", r.RemoteAddr, "error", err.Error())
+				http.Error(w, "party envelope must declare a gobl: endpoint: "+err.Error(), http.StatusUnprocessableEntity)
 				return
 			}
 			log.Warn("inbox.rejected", "reason", "verify_failed", "remote", r.RemoteAddr, "error", err.Error())

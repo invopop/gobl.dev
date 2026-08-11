@@ -221,9 +221,17 @@ func buildDomainHandler(dc domainConfig, opts *NetServeOptions) (http.Handler, e
 func signedPartyBytes(env *gobl.Envelope, priv *dsig.PrivateKey, self net.Address) ([]byte, error) {
 	signed := false
 	if env.Signed() && self != "" {
-		if p, err := head.SignedPayload(env.Signatures[0]); err == nil && p.Aud == "" {
+		// Search rather than index: an endorsed envelope's first
+		// signature is often the audience-bound registration hop, with
+		// the publication signature elsewhere aboard (spec §8.2).
+		for _, sig := range env.Signatures {
+			p, err := head.SignedPayload(sig)
+			if err != nil || p.Aud != "" {
+				continue
+			}
 			if got, gerr := net.ParseAddress(p.Iss); gerr == nil && got == self {
 				signed = true
+				break
 			}
 		}
 	}
@@ -905,7 +913,11 @@ func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr
 			return
 		}
 
-		sender, err := client.VerifyEnvelope(r.Context(), env, "")
+		// Inboxes require the sender to have signed for this address:
+		// at least one of its signatures must carry aud equal to this
+		// inbox, searched across the envelope since delivery-hop
+		// signatures accumulate in no significant order (spec §8.3).
+		sender, err := client.VerifyEnvelope(r.Context(), env, selfAddr)
 		if err != nil {
 			if errors.Is(err, net.ErrUnavailable) {
 				log.Warn("inbox.rejected", "reason", "verify_unavailable", "remote", r.RemoteAddr, "error", err.Error())
@@ -914,27 +926,6 @@ func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr
 			}
 			log.Warn("inbox.rejected", "reason", "verify_failed", "remote", r.RemoteAddr, "error", err.Error())
 			http.Error(w, "signature verification failed: "+err.Error(), http.StatusUnauthorized)
-			return
-		}
-		// Inboxes require the envelope to be bound to this address. A
-		// missing or mismatched aud is rejected so the same valid
-		// envelope cannot be replayed against a different inbox.
-		p, perr := head.SignedPayload(env.Signatures[0])
-		if perr != nil {
-			log.Warn("inbox.rejected", "reason", "verify_failed", "caller", string(sender), "error", perr.Error())
-			http.Error(w, "could not read signed payload", http.StatusUnauthorized)
-			return
-		}
-		if p.Aud == "" {
-			log.Warn("inbox.rejected", "reason", "aud_missing", "caller", string(sender))
-			http.Error(w, "envelope must be signed with an audience matching this inbox", http.StatusUnauthorized)
-			return
-		}
-		// Canonicalize both sides so U-Label or trailing-dot forms
-		// compare equal, mirroring gobl's VerifyEnvelope.
-		if aud, aerr := net.ParseAddress(p.Aud); aerr != nil || aud != selfAddr {
-			log.Warn("inbox.rejected", "reason", "aud_mismatch", "caller", string(sender), "aud", p.Aud)
-			http.Error(w, "envelope audience does not match this inbox", http.StatusUnauthorized)
 			return
 		}
 		// A self-signed party envelope from an address we have an

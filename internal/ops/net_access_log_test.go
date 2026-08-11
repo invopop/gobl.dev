@@ -158,7 +158,7 @@ func TestAccessLogInboxAudMismatch(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	out := buf.String()
 	assert.Contains(t, out, "inbox.rejected")
-	assert.Contains(t, out, "reason=aud_mismatch")
+	assert.Contains(t, out, "reason=verify_failed")
 	assert.Contains(t, out, "status=401")
 }
 

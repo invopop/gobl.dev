@@ -253,7 +253,7 @@ func TestNetWhoResponseAudBound(t *testing.T) {
 
 	_, err = NetWho(context.Background(), newWhoOpts(t, testServeDomain, srv.URL))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "audience-bound")
+	assert.Contains(t, err.Error(), "audience-free")
 }
 
 // TestNetWhoResponseDocNotParty: response is correctly signed by the

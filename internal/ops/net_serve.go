@@ -913,11 +913,16 @@ func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr
 			return
 		}
 
-		// Inboxes require the sender to have signed for this address:
-		// at least one of its signatures must carry aud equal to this
-		// inbox, searched across the envelope since delivery-hop
-		// signatures accumulate in no significant order (spec §8.3).
-		sender, err := client.VerifyEnvelope(r.Context(), env, selfAddr)
+		// Party envelopes in the identity flows are bearer documents
+		// (spec §8.3) and carry no audience binding; any other document
+		// must have been signed for this inbox — at least one sender
+		// signature with aud equal to this address, searched.
+		_, isParty := env.Extract().(*org.Party)
+		expectAud := selfAddr
+		if isParty {
+			expectAud = ""
+		}
+		sender, err := client.VerifyEnvelope(r.Context(), env, expectAud)
 		if err != nil {
 			if errors.Is(err, net.ErrUnavailable) {
 				log.Warn("inbox.rejected", "reason", "verify_unavailable", "remote", r.RemoteAddr, "error", err.Error())
@@ -928,25 +933,31 @@ func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr
 			http.Error(w, "signature verification failed: "+err.Error(), http.StatusUnauthorized)
 			return
 		}
-		// A self-signed party envelope from an address we have an
-		// outstanding who request to fulfils that request (spec §8.3)
-		// and needs no endorsement — it carries exactly what a 200 who
-		// response would.
+		// Party envelopes that concern this inbox need no endorsement:
+		// one whose subject is this address is a registration or
+		// verification return (§5.3), and one from an address we have
+		// an outstanding who request to fulfils that request (§8.2) —
+		// it carries exactly what a 200 who response would.
 		pendingFile := filepath.Join(dc.WhoPendingDir, string(sender))
-		if _, isParty := env.Extract().(*org.Party); isParty && dc.WhoPendingDir != "" && fileExists(pendingFile) {
+		switch {
+		case isParty && sender == selfAddr:
+			log.Info("inbox.identity_return", "envelope", env.Head.UUID.String())
+		case isParty && dc.WhoPendingDir != "" && fileExists(pendingFile):
 			_ = os.Remove(pendingFile)
 			log.Info("who.fulfilled", "caller", string(sender))
-		} else if _, err := client.VerifySender(r.Context(), sender, !allowUnverified); err != nil {
-			// A transient failure to resolve the sender's who or a
-			// verifier key must not read as a permanent rejection.
-			if errors.Is(err, net.ErrUnavailable) {
-				log.Warn("inbox.rejected", "reason", "verify_unavailable", "caller", string(sender), "error", err.Error())
-				http.Error(w, "could not verify sender endorsement: "+err.Error(), http.StatusServiceUnavailable)
+		default:
+			if _, err := client.VerifySender(r.Context(), sender, !allowUnverified); err != nil {
+				// A transient failure to resolve the sender's who or a
+				// verifier key must not read as a permanent rejection.
+				if errors.Is(err, net.ErrUnavailable) {
+					log.Warn("inbox.rejected", "reason", "verify_unavailable", "caller", string(sender), "error", err.Error())
+					http.Error(w, "could not verify sender endorsement: "+err.Error(), http.StatusServiceUnavailable)
+					return
+				}
+				log.Warn("inbox.rejected", "reason", "not_endorsed", "caller", string(sender), "error", err.Error())
+				http.Error(w, "sender is not endorsed: "+err.Error(), http.StatusForbidden)
 				return
 			}
-			log.Warn("inbox.rejected", "reason", "not_endorsed", "caller", string(sender), "error", err.Error())
-			http.Error(w, "sender is not endorsed: "+err.Error(), http.StatusForbidden)
-			return
 		}
 
 		// Re-parse the UUID before using it as a filename component.

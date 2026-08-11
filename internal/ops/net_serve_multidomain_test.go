@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/invopop/gobl"
-	"github.com/invopop/gobl/dsig"
 	"github.com/invopop/gobl/head"
 	"github.com/invopop/gobl/net"
 	"github.com/invopop/gobl/note"
@@ -175,28 +174,26 @@ func TestMultiDomainRouter(t *testing.T) {
 	domains, err := discoverDomains(configDir)
 	require.NoError(t, err)
 
-	peerKey := dsig.NewES256Key()
-	const peer = "peer.example"
-	client := net.NewClient(net.WithFetcher(&mapFetcher{data: map[string][]byte{
-		net.Address(peer).KeyURL(peerKey.ID()): jwkBytes(t, peerKey),
-	}}))
+	// The shared test peer is endorsed and verified via peerFetcher, so
+	// inbox deliveries pass the always-on endorsement policy.
+	peerKey := testPeerKey
+	const peer = testPeerDomain
+	opts := serveOpts(peerFetcher(t))
 
-	router, err := buildRouter(domains, client, discardLog())
+	router, err := buildRouter(domains, opts)
 	require.NoError(t, err)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
-	// POST /who on each host returns a party signed by that host, bound to peer.
+	// GET /who on each host returns that host's static self-signed
+	// party; the request token binds to the host being asked.
 	for _, host := range []string{"a.example", "b.example"} {
-		reqEnv, err := gobl.Envelop(&org.Party{Name: "Peer"})
-		require.NoError(t, err)
-		require.NoError(t, reqEnv.Sign(peerKey, head.WithIssuer(net.Address(peer).URI()), head.WithAudience(net.Address(host).URI())))
-		body, err := json.Marshal(reqEnv)
+		token, err := net.NewToken(peerKey, peer, net.Address(host), 0)
 		require.NoError(t, err)
 
-		req, _ := http.NewRequest(http.MethodPost, srv.URL+net.WhoPath, bytes.NewReader(body))
+		req, _ := http.NewRequest(http.MethodGet, srv.URL+net.WhoPath, nil)
 		req.Host = host
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
@@ -205,12 +202,12 @@ func TestMultiDomainRouter(t *testing.T) {
 		_ = resp.Body.Close()
 		p, err := headSignedPayload(env)
 		require.NoError(t, err)
-		assert.Equal(t, net.Address(host).URI(), p.Iss)
-		assert.Equal(t, net.Address(peer).URI(), p.Aud)
+		assert.Equal(t, net.Address(host).String(), p.Iss)
+		assert.Empty(t, p.Aud, "static who response is not audience-bound")
 	}
 
 	// Unknown host -> 404.
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+net.WhoPath, bytes.NewReader(signedRequest(t, "zzz.example")))
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+net.WhoPath, nil)
 	req.Host = "zzz.example"
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
@@ -222,13 +219,16 @@ func TestMultiDomainRouter(t *testing.T) {
 	msg.SetUUID(uuid.V7())
 	denv, err := gobl.Envelop(msg)
 	require.NoError(t, err)
-	require.NoError(t, denv.Sign(peerKey, head.WithIssuer(net.Address(peer).URI()), head.WithAudience(net.Address("a.example").URI())))
+	require.NoError(t, denv.Sign(peerKey, head.WithIssuer(net.Address(peer).String()), head.WithAudience(net.Address("a.example").String())))
 	body, err := json.Marshal(denv)
 	require.NoError(t, err)
 
+	itoken, err := net.NewToken(peerKey, peer, "a.example", 0)
+	require.NoError(t, err)
 	ireq, _ := http.NewRequest(http.MethodPost, srv.URL+net.InboxPath, bytes.NewReader(body))
 	ireq.Host = "a.example"
 	ireq.Header.Set("Content-Type", "application/json")
+	ireq.Header.Set("Authorization", "Bearer "+itoken)
 	iresp, err := http.DefaultClient.Do(ireq)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusAccepted, iresp.StatusCode)

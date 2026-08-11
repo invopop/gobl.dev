@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/invopop/gobl.dev/internal/ops"
-	"github.com/invopop/gobl/cbc"
 	"github.com/invopop/gobl/dsig"
 	goblnet "github.com/invopop/gobl/net"
 )
@@ -86,16 +85,16 @@ func (opts *signOpts) runE(cmd *cobra.Command, args []string) error {
 	defer out.Close() // nolint:errcheck
 
 	keyFile := opts.privateKeyFile
-	var iss, aud cbc.URI
+	var iss, aud string
 	if opts.domain != "" {
 		if cmd.Flags().Changed("key") {
 			return errors.New("--domain and --key are mutually exclusive")
 		}
 		keyFile = filepath.Join(defaultConfigDir(), opts.domain, "private.jwk")
-		iss = goblnet.Address(opts.domain).URI()
+		iss = goblnet.Address(opts.domain).String()
 	}
 	if opts.audience != "" {
-		aud = goblnet.Address(opts.audience).URI()
+		aud = goblnet.Address(opts.audience).String()
 	}
 
 	key, err := loadPrivateKey(keyFile)

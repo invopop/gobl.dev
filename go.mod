@@ -7,9 +7,11 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.502.2
+	github.com/invopop/gobl v0.504.1-0.20260811215754-c231ee2feae5
 	github.com/invopop/gobl.br.nfe v0.0.1
 	github.com/invopop/gobl.br.nfse v0.0.1
+	github.com/invopop/gobl.dk.oioubl v0.0.3
+	github.com/invopop/gobl.fi.finvoice v0.0.2
 	github.com/invopop/gobl.fr.ctc v0.0.4
 	github.com/invopop/gobl.mx.cfdi v0.61.0
 	github.com/invopop/gobl.pt.saft v0.0.1

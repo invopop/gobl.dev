@@ -23,7 +23,6 @@ import (
 
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/cal"
-	"github.com/invopop/gobl/cbc"
 	"github.com/invopop/gobl/dsig"
 	"github.com/invopop/gobl/head"
 	"github.com/invopop/gobl/net"
@@ -44,19 +43,23 @@ const (
 // NetServeOptions configures the GOBL Net HTTP server.
 type NetServeOptions struct {
 	// ConfigDir is the base directory whose <domain>/ subdirectories are
-	// auto-discovered when no explicit single identity is provided.
+	// auto-discovered and served.
 	ConfigDir string
 
-	// Explicit single-identity ("manual") mode: when PartyFile or KeysDir
-	// is set, exactly one identity is served from these paths.
-	PartyFile      string
-	KeysDir        string // directory of <kid>.json public JWK files
-	PrivateKeyFile string
-	InboxDir       string
+	// Authorities supplements the default trusted authority list
+	// (net.Authorities, i.e. lookup.gobl.org) for the inbox's
+	// sender-endorsement policy: the server trusts the default plus
+	// these extras. Incoming envelopes are accepted only from senders
+	// whose who identity carries a countersignature from a trusted
+	// authority with a confirmed verifier. AllowUnverified relaxes
+	// the verifier requirement (sandbox environments and testing);
+	// endorsement itself is always required.
+	Authorities     []net.Address
+	AllowUnverified bool
 
-	Client *net.Client  // optional; defaults to net.NewClient()
-	Out    io.Writer    // optional; defaults to os.Stdout (reserved for results, currently unused)
-	Log    *slog.Logger // optional; defaults to slog.Default()
+	Fetcher net.Fetcher  // optional; defaults to net.NewHTTPFetcher()
+	Out     io.Writer    // optional; defaults to os.Stdout (reserved for results, currently unused)
+	Log     *slog.Logger // optional; defaults to slog.Default()
 
 	// Port overrides (zero means use the default — 80 / 443).
 	HTTPPort  int
@@ -65,7 +68,7 @@ type NetServeOptions struct {
 	// ACME options. ACMELive and ACMETest are mutually exclusive.
 	ACMELive  bool
 	ACMETest  bool
-	Domain    string // restricts multi-domain discovery to one, or names the manual identity
+	Domain    string // restricts multi-domain discovery to one domain
 	ACMEEmail string
 	CertDir   string
 
@@ -77,12 +80,14 @@ type NetServeOptions struct {
 // domainConfig groups the on-disk paths that make up one GOBL Net
 // identity. The directory name is the domain.
 type domainConfig struct {
-	Domain         string
-	KeysDir        string // directory of <kid>.json public JWK files
-	PrivateKeyFile string
-	PartyFile      string
-	InboxDir       string
-	AllowFile      string
+	Domain          string
+	KeysDir         string // directory of <kid>.json public JWK files
+	PrivateKeyFile  string
+	PartyFile       string
+	InboxDir        string
+	WhoRequestsDir  string // inbound who requests answered 202, awaiting approval
+	WhoPendingDir   string // outbound who requests answered 202 by the peer
+	WhoDeferredFile string // marker file: defer /who disclosure to operator approval
 }
 
 // logger returns the configured slog.Logger, falling back to slog.Default()
@@ -99,42 +104,15 @@ func (o *NetServeOptions) logger() *slog.Logger {
 func domainConfigFor(configDir, domain string) domainConfig {
 	dir := filepath.Join(configDir, domain)
 	return domainConfig{
-		Domain:         domain,
-		KeysDir:        filepath.Join(dir, "keys"),
-		PrivateKeyFile: filepath.Join(dir, "private.jwk"),
-		PartyFile:      filepath.Join(dir, "party.json"),
-		InboxDir:       filepath.Join(dir, "inbox"),
-		AllowFile:      filepath.Join(dir, "allow.json"),
+		Domain:          domain,
+		KeysDir:         filepath.Join(dir, "keys"),
+		PrivateKeyFile:  filepath.Join(dir, "private.jwk"),
+		PartyFile:       filepath.Join(dir, "party.json"),
+		InboxDir:        filepath.Join(dir, "inbox"),
+		WhoRequestsDir:  filepath.Join(dir, "who-requests"),
+		WhoPendingDir:   filepath.Join(dir, "who-pending"),
+		WhoDeferredFile: filepath.Join(dir, "who-deferred"),
 	}
-}
-
-// loadAllowList reads <domain>/allow.json (a JSON array of GOBL Net
-// addresses). It returns the set of accepted addresses and whether a
-// list is configured at all. An absent file means "accept any verified
-// caller" (present == false).
-func loadAllowList(dc domainConfig) (map[net.Address]bool, bool, error) {
-	if dc.AllowFile == "" || !fileExists(dc.AllowFile) {
-		return nil, false, nil
-	}
-	data, err := os.ReadFile(dc.AllowFile)
-	if err != nil {
-		return nil, false, fmt.Errorf("net serve: read allow list: %w", err)
-	}
-	var addrs []net.Address
-	if err := json.Unmarshal(data, &addrs); err != nil {
-		return nil, false, fmt.Errorf("net serve: invalid allow list: %w", err)
-	}
-	set := make(map[net.Address]bool, len(addrs))
-	for _, a := range addrs {
-		set[a] = true
-	}
-	return set, true, nil
-}
-
-// allowed reports whether addr may call a protected endpoint: any
-// verified caller when no list is configured, otherwise only listed ones.
-func allowed(set map[net.Address]bool, present bool, addr net.Address) bool {
-	return !present || set[addr]
 }
 
 // discoverDomains lists the immediate subdirectories of configDir (skipping
@@ -161,32 +139,18 @@ func discoverDomains(configDir string) ([]domainConfig, error) {
 	return out, nil
 }
 
-// NetServeHandler builds a single-identity HTTP handler from explicit
-// options (manual mode). Multi-domain serving uses buildRouter. It is
-// exported so tests can drive the resulting handler via httptest.
-func NetServeHandler(opts *NetServeOptions) (http.Handler, error) {
-	client := opts.Client
-	if client == nil {
-		client = net.NewClient()
-	}
-	dc := domainConfig{
-		Domain:         opts.Domain,
-		KeysDir:        opts.KeysDir,
-		PrivateKeyFile: opts.PrivateKeyFile,
-		PartyFile:      opts.PartyFile,
-		InboxDir:       opts.InboxDir,
-	}
-	return buildDomainHandler(dc, client, opts.logger())
-}
-
 // buildDomainHandler prepares one domain's on-disk state (keys, party,
-// inbox, allow-list) and returns its mux.
+// inbox) and returns its mux.
 //
-//   - GET  /keys  — open, serves the public JWKS.
-//   - POST /who   — authenticated party exchange (see handleWho).
-//   - POST /inbox — authenticated envelope delivery (see handleInbox).
-func buildDomainHandler(dc domainConfig, client *net.Client, log *slog.Logger) (http.Handler, error) {
-	keysByKID, err := ensureKeys(dc, log)
+//   - GET  /keys   — open, serves the published keys.
+//   - GET  /who    — authenticated identity lookup (see handleWho).
+//   - POST /inbox  — authenticated envelope delivery (see handleInbox).
+//
+// The who and inbox routes require a request token; keys stay open so
+// peers can verify this domain's signatures and tokens.
+func buildDomainHandler(dc domainConfig, opts *NetServeOptions) (http.Handler, error) {
+	l := opts.logger()
+	keysByKID, err := ensureKeys(dc, l)
 	if err != nil {
 		return nil, err
 	}
@@ -194,27 +158,47 @@ func buildDomainHandler(dc domainConfig, client *net.Client, log *slog.Logger) (
 	if err != nil {
 		return nil, err
 	}
-	partyEnv, err := readPartyEnvelope(dc)
-	if err != nil {
-		return nil, err
+	self := net.Address(dc.Domain)
+	if self == "" {
+		return nil, errors.New("net serve: domain is required")
 	}
-	partyEnvBytes, err := json.Marshal(partyEnv) // canonical, unsigned, stable UUID
-	if err != nil {
-		return nil, fmt.Errorf("net serve: marshal party: %w", err)
+
+	fetcher := opts.Fetcher
+	if fetcher == nil {
+		fetcher = net.NewHTTPFetcher()
 	}
+	// WithAuthorities replaces the client's trust list, and this
+	// server's contract is to supplement the default, so the list is
+	// built as default-plus-extras.
+	authorities := append(append([]net.Address{}, net.Authorities...), opts.Authorities...)
+	client := net.NewClient(
+		net.WithFetcher(fetcher),
+		net.WithIdentity(self, priv),
+		net.WithAuthorities(authorities...),
+	)
+
+	// A domain without a party file is a receive-only account: /who
+	// answers 204 and deliveries are unaffected.
+	var partyEnvBytes []byte
+	if fileExists(dc.PartyFile) {
+		partyEnv, err := readPartyEnvelope(dc)
+		if err != nil {
+			return nil, err
+		}
+		partyEnvBytes, err = signedPartyBytes(partyEnv, priv, self)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		l.Info("who.no_party", "domain", dc.Domain, "party_file", dc.PartyFile)
+	}
+
 	if err := os.MkdirAll(dc.InboxDir, 0o755); err != nil {
 		return nil, fmt.Errorf("net serve: create inbox dir: %w", err)
 	}
-	allow, present, err := loadAllowList(dc)
-	if err != nil {
-		return nil, err
-	}
-	var self cbc.URI
-	if dc.Domain != "" {
-		self = net.Address(dc.Domain).URI()
-	}
 
-	l := logger(log)
+	deferred := fileExists(dc.WhoDeferredFile)
+
 	jwksBytes, keyCount, err := buildJWKS(keysByKID)
 	if err != nil {
 		return nil, err
@@ -222,9 +206,95 @@ func buildDomainHandler(dc domainConfig, client *net.Client, log *slog.Logger) (
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+net.KeysPath+"/{kid}", handleKey(l, keysByKID))
 	mux.HandleFunc("GET "+net.JWKSPath, handleJWKS(l, jwksBytes, keyCount))
-	mux.HandleFunc("POST "+net.WhoPath, handleWho(l, client, partyEnvBytes, priv, self, allow, present))
-	mux.HandleFunc("POST "+net.InboxPath, handleInbox(l, client, dc.InboxDir, self, allow, present))
+	mux.Handle("GET "+net.WhoPath, requireAuth(l, client, self,
+		handleWho(l, partyEnvBytes, deferred, dc.WhoRequestsDir)))
+	mux.Handle("POST "+net.InboxPath, requireAuth(l, client, self,
+		handleInbox(l, client, dc, self, opts.AllowUnverified)))
 	return accessLog(l, corsAllowAll(mux)), nil
+}
+
+// signedPartyBytes returns the static /who response body: the party
+// envelope self-signed by this domain. An envelope already carrying the
+// domain's self-signature as its first signature (e.g. countersigned by
+// an Authority out-of-band) is served verbatim; anything else is signed
+// once at startup with iss=self and no audience.
+func signedPartyBytes(env *gobl.Envelope, priv *dsig.PrivateKey, self net.Address) ([]byte, error) {
+	signed := false
+	if env.Signed() && self != "" {
+		// Search rather than index: an endorsed envelope's first
+		// signature is often the audience-bound registration hop, with
+		// the publication signature elsewhere aboard (spec §8.2).
+		for _, sig := range env.Signatures {
+			p, err := head.SignedPayload(sig)
+			if err != nil || p.Aud != "" {
+				continue
+			}
+			if got, gerr := net.ParseAddress(p.Iss); gerr == nil && got == self {
+				signed = true
+				break
+			}
+		}
+	}
+	if !signed {
+		opts := []head.SignOption{}
+		if self != "" {
+			opts = append(opts, head.WithIssuer(self.String()))
+		}
+		if err := env.Sign(priv, opts...); err != nil {
+			return nil, fmt.Errorf("net serve: sign party: %w", err)
+		}
+	}
+	out, err := json.Marshal(env)
+	if err != nil {
+		return nil, fmt.Errorf("net serve: marshal party: %w", err)
+	}
+	return out, nil
+}
+
+// requesterCtxKey carries the verified requester Address through the
+// request context.
+type requesterCtxKey struct{}
+
+// requesterFrom returns the requester Address stashed by requireAuth,
+// or "" when authentication is disabled.
+func requesterFrom(r *http.Request) net.Address {
+	a, _ := r.Context().Value(requesterCtxKey{}).(net.Address)
+	return a
+}
+
+// requireAuth enforces the request token (spec §5.5) on who and inbox
+// requests: the Authorization bearer token must verify against the
+// issuer's published key, be bound to this domain, and be fresh. The
+// verified requester is stashed in the request context.
+func requireAuth(log *slog.Logger, client *net.Client, self net.Address, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get("Authorization")
+		if header == "" {
+			log.Warn("auth.rejected", "path", r.URL.Path, "reason", "token_missing", "remote", r.RemoteAddr)
+			http.Error(w, "authorization required", http.StatusUnauthorized)
+			return
+		}
+		requester, err := client.VerifyAuthorization(r.Context(), header, self)
+		if err != nil {
+			// A token that cannot be *checked* (the issuer's key
+			// endpoint is unreachable) is not an invalid token: answer
+			// 503 so the client retries.
+			if errors.Is(err, net.ErrUnavailable) {
+				log.Warn("auth.rejected", "path", r.URL.Path, "reason", "token_unavailable", "remote", r.RemoteAddr, "error", err.Error())
+				http.Error(w, "could not verify request token: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			}
+			reason := "token_invalid"
+			if errors.Is(err, net.ErrTokenExpired) {
+				reason = "token_expired"
+			}
+			log.Warn("auth.rejected", "path", r.URL.Path, "reason", reason, "remote", r.RemoteAddr, "error", err.Error())
+			http.Error(w, "invalid request token: "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+		ctx := context.WithValue(r.Context(), requesterCtxKey{}, requester)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 // buildJWKS materialises the bulk JWK Set response by sorting the
@@ -306,15 +376,11 @@ func handleKey(log *slog.Logger, keysByKID map[string][]byte) http.HandlerFunc {
 }
 
 // buildRouter returns an HTTP handler dispatching by the request Host
-// header to the matching domain's handler. A single unnamed identity
-// (manual mode without a domain) is served for all hosts.
-func buildRouter(domains []domainConfig, client *net.Client, log *slog.Logger) (http.Handler, error) {
-	if len(domains) == 1 && domains[0].Domain == "" {
-		return buildDomainHandler(domains[0], client, log)
-	}
+// header to the matching domain's handler.
+func buildRouter(domains []domainConfig, opts *NetServeOptions) (http.Handler, error) {
 	handlers := make(map[string]http.Handler, len(domains))
 	for _, dc := range domains {
-		h, err := buildDomainHandler(dc, client, log)
+		h, err := buildDomainHandler(dc, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -462,7 +528,10 @@ func dirExists(path string) bool {
 }
 
 // publishedKeyBytes marshals the public counterpart of priv as a
-// dsig.PublicKey with valid_from stamped to the current UTC time.
+// dsig.PublicKey with valid_from stamped to the current UTC time,
+// floored to the second: signature `iat` claims carry whole seconds,
+// so a sub-second valid_from would reject signatures made immediately
+// after key generation.
 func publishedKeyBytes(priv *dsig.PrivateKey) ([]byte, error) {
 	pubJSON, err := json.Marshal(priv.Public())
 	if err != nil {
@@ -472,7 +541,7 @@ func publishedKeyBytes(priv *dsig.PrivateKey) ([]byte, error) {
 	if err := json.Unmarshal(pubJSON, pk); err != nil {
 		return nil, err
 	}
-	now := cal.TimestampNow()
+	now := cal.TimestampOf(time.Now().UTC().Truncate(time.Second))
 	pk.ValidFrom = &now
 	return json.Marshal(pk)
 }
@@ -531,15 +600,6 @@ func fileExists(path string) bool {
 // identity (manual mode) when PartyFile/KeysDir are set, otherwise the
 // domains discovered under ConfigDir (optionally filtered by Domain).
 func resolveDomains(opts *NetServeOptions) ([]domainConfig, error) {
-	if opts.PartyFile != "" || opts.KeysDir != "" {
-		return []domainConfig{{
-			Domain:         opts.Domain,
-			KeysDir:        opts.KeysDir,
-			PrivateKeyFile: opts.PrivateKeyFile,
-			PartyFile:      opts.PartyFile,
-			InboxDir:       opts.InboxDir,
-		}}, nil
-	}
 	if opts.ConfigDir == "" {
 		return nil, errors.New("net serve: no config dir configured")
 	}
@@ -578,20 +638,17 @@ func NetServe(ctx context.Context, opts *NetServeOptions) error {
 	if opts.Out == nil {
 		opts.Out = os.Stdout
 	}
-	if opts.Client == nil {
-		opts.Client = net.NewClient()
-	}
 
 	domains, err := resolveDomains(opts)
 	if err != nil {
 		return err
 	}
 	if len(domains) == 0 {
-		return gobl.ErrInput.WithReason("net serve: no domains configured — run `gobl init <domain>` or pass --party/--keys")
+		return gobl.ErrInput.WithReason("net serve: no domains configured — run `gobl init <domain>` first")
 	}
 
 	log := opts.logger()
-	router, err := buildRouter(domains, opts.Client, log)
+	router, err := buildRouter(domains, opts)
 	if err != nil {
 		return err
 	}
@@ -602,9 +659,6 @@ func NetServe(ctx context.Context, opts *NetServeOptions) error {
 	switch {
 	case opts.ACMELive || opts.ACMETest:
 		names := domainNames(domains)
-		if len(names) == 0 {
-			return gobl.ErrInput.WithReason("net serve: ACME requires named domains — use --domain or per-domain config directories")
-		}
 		m := newAutocertManager(opts, names)
 		httpHandler = m.HTTPHandler(router)
 		tlsConfig = m.TLSConfig()
@@ -767,60 +821,78 @@ func serveBytes(body []byte) http.HandlerFunc {
 	}
 }
 
-// handleWho answers an authenticated party-exchange request. The caller
-// POSTs a signed envelope (iss=gobl:caller, aud=gobl:self); the server
-// verifies it, allow-lists the caller, and responds with its own party
-// envelope signed with iss/aud reversed (iss=gobl:self, aud=gobl:caller).
-func handleWho(log *slog.Logger, client *net.Client, partyEnvBytes []byte, priv *dsig.PrivateKey, self cbc.URI, allow map[net.Address]bool, present bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(io.LimitReader(r.Body, netInboxMaxBody))
-		if err != nil {
-			log.Warn("who.rejected", "reason", "read_body", "remote", r.RemoteAddr, "error", err.Error())
-			http.Error(w, "could not read body", http.StatusBadRequest)
-			return
-		}
-		req := new(gobl.Envelope)
-		if err := json.Unmarshal(body, req); err != nil {
-			log.Warn("who.rejected", "reason", "bad_body", "remote", r.RemoteAddr)
-			http.Error(w, "invalid envelope JSON", http.StatusBadRequest)
-			return
-		}
-		caller, err := client.VerifyEnvelope(r.Context(), req, self)
-		if err != nil {
-			log.Warn("who.rejected", "reason", "verify_failed", "remote", r.RemoteAddr, "error", err.Error())
-			http.Error(w, "request verification failed: "+err.Error(), http.StatusUnauthorized)
-			return
-		}
-		if !allowed(allow, present, caller) {
-			log.Warn("who.rejected", "reason", "not_allowed", "caller", string(caller))
-			http.Error(w, "caller not accepted", http.StatusForbidden)
-			return
-		}
-
-		resp := new(gobl.Envelope)
-		if err := json.Unmarshal(partyEnvBytes, resp); err != nil {
-			log.Error("who.party_load_failed", "caller", string(caller), "error", err.Error())
-			http.Error(w, "could not load party", http.StatusInternalServerError)
-			return
-		}
-		if err := resp.Sign(priv, head.WithIssuer(self), head.WithAudience(caller.URI())); err != nil {
-			log.Error("who.sign_failed", "caller", string(caller), "error", err.Error())
-			http.Error(w, "could not sign party: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		out, err := json.Marshal(resp)
-		if err != nil {
-			log.Error("who.encode_failed", "caller", string(caller), "error", err.Error())
-			http.Error(w, "could not encode party", http.StatusInternalServerError)
-			return
-		}
-		log.Info("who.exchange", "caller", string(caller))
-		serveBytes(out)(w, r)
-	}
+// whoRequest is the record written for each deferred /who request so
+// the operator can review and approve it later (`gobl net requests`,
+// `gobl net approve`).
+type whoRequest struct {
+	Requester net.Address `json:"requester"`
+	Time      string      `json:"time"`
 }
 
-func handleInbox(log *slog.Logger, client *net.Client, dir string, self cbc.URI, allow map[net.Address]bool, present bool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+// recordWhoRequest persists a deferred who request as
+// <dir>/<requester>.json. The requester is a canonicalized FQDN, so it
+// is safe as a filename component.
+func recordWhoRequest(dir string, requester net.Address) error {
+	if dir == "" {
+		return fmt.Errorf("net serve: no who-requests directory configured")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	data, err := json.Marshal(whoRequest{
+		Requester: requester,
+		Time:      time.Now().UTC().Format(time.RFC3339),
+	})
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, string(requester)+".json"), data, 0o644)
+}
+
+// handleWho answers an authenticated identity lookup (GET). The
+// response is the domain's static self-signed party envelope; the
+// request token identifies the requester for the audit log. A domain
+// without a party file answers 204 (receive-only); a domain with
+// deferred disclosure records the request and answers 202 — the owner
+// may later deliver its party to the requester's inbox (`gobl net
+// approve`).
+func handleWho(log *slog.Logger, partyEnvBytes []byte, deferred bool, requestsDir string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requester := requesterFrom(r)
+		if len(partyEnvBytes) == 0 {
+			log.Info("who.served", "requester", string(requester), "status", http.StatusNoContent)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if deferred {
+			if err := recordWhoRequest(requestsDir, requester); err != nil {
+				log.Error("who.request_write_failed", "requester", string(requester), "error", err.Error())
+				http.Error(w, "could not record request", http.StatusInternalServerError)
+				return
+			}
+			log.Info("who.deferred", "requester", string(requester))
+			w.WriteHeader(http.StatusAccepted)
+			return
+		}
+		log.Info("who.served", "requester", string(requester), "status", http.StatusOK)
+		w.Header().Set("Cache-Control", "private")
+		serveBytes(partyEnvBytes)(w, r)
+	})
+}
+
+// handleInbox accepts a signed envelope delivery. The request token
+// (checked by requireAuth) authenticates the transmitting peer — which
+// may differ from the envelope's signer when a trusted intermediary
+// delivers on the signer's behalf. The envelope's own signature and
+// audience are verified independently, and the sender-endorsement
+// policy applies to the envelope's signer: an authority
+// countersignature is always required, with a confirmed verifier
+// unless allowUnverified relaxes it. A party envelope answering one of
+// our own deferred who requests (who-pending) is accepted without
+// endorsement.
+func handleInbox(log *slog.Logger, client *net.Client, dc domainConfig, selfAddr net.Address, allowUnverified bool) http.Handler {
+	dir := dc.InboxDir
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(io.LimitReader(r.Body, netInboxMaxBody))
 		if err != nil {
 			log.Warn("inbox.rejected", "reason", "read_body", "remote", r.RemoteAddr, "error", err.Error())
@@ -841,37 +913,57 @@ func handleInbox(log *slog.Logger, client *net.Client, dir string, self cbc.URI,
 			return
 		}
 
-		sender, err := client.VerifyEnvelope(r.Context(), env, "")
+		// Party envelopes in the identity flows are bearer documents
+		// (spec §8.3): the subject is the address the document itself
+		// declares. Any other document must carry a delivery binding —
+		// a valid signature with aud equal to this inbox.
+		_, isParty := env.Extract().(*org.Party)
+		var sender net.Address
+		if isParty {
+			sender, err = client.VerifyParty(r.Context(), env)
+		} else {
+			sender, err = client.VerifyDelivery(r.Context(), env, selfAddr)
+		}
 		if err != nil {
+			switch {
+			case errors.Is(err, net.ErrUnavailable):
+				log.Warn("inbox.rejected", "reason", "verify_unavailable", "remote", r.RemoteAddr, "error", err.Error())
+				http.Error(w, "could not verify envelope: "+err.Error(), http.StatusServiceUnavailable)
+				return
+			case errors.Is(err, net.ErrPartyMissing):
+				log.Warn("inbox.rejected", "reason", "invalid_party", "remote", r.RemoteAddr, "error", err.Error())
+				http.Error(w, "party envelope must declare a gobl: endpoint: "+err.Error(), http.StatusUnprocessableEntity)
+				return
+			}
 			log.Warn("inbox.rejected", "reason", "verify_failed", "remote", r.RemoteAddr, "error", err.Error())
 			http.Error(w, "signature verification failed: "+err.Error(), http.StatusUnauthorized)
 			return
 		}
-		// Inboxes require the envelope to be bound to this address. A
-		// missing or mismatched aud is rejected so the same valid
-		// envelope cannot be replayed against a different inbox.
-		if self != "" {
-			p, perr := head.SignedPayload(env.Signatures[0])
-			if perr != nil {
-				log.Warn("inbox.rejected", "reason", "verify_failed", "caller", string(sender), "error", perr.Error())
-				http.Error(w, "could not read signed payload", http.StatusUnauthorized)
+		// Party envelopes that concern this inbox need no endorsement:
+		// one whose subject is this address is a registration or
+		// verification return (§5.3), and one from an address we have
+		// an outstanding who request to fulfils that request (§8.2) —
+		// it carries exactly what a 200 who response would.
+		pendingFile := filepath.Join(dc.WhoPendingDir, string(sender))
+		switch {
+		case isParty && sender == selfAddr:
+			log.Info("inbox.identity_return", "envelope", env.Head.UUID.String())
+		case isParty && dc.WhoPendingDir != "" && fileExists(pendingFile):
+			_ = os.Remove(pendingFile)
+			log.Info("who.fulfilled", "caller", string(sender))
+		default:
+			if _, err := client.VerifySender(r.Context(), sender, !allowUnverified); err != nil {
+				// A transient failure to resolve the sender's who or a
+				// verifier key must not read as a permanent rejection.
+				if errors.Is(err, net.ErrUnavailable) {
+					log.Warn("inbox.rejected", "reason", "verify_unavailable", "caller", string(sender), "error", err.Error())
+					http.Error(w, "could not verify sender endorsement: "+err.Error(), http.StatusServiceUnavailable)
+					return
+				}
+				log.Warn("inbox.rejected", "reason", "not_endorsed", "caller", string(sender), "error", err.Error())
+				http.Error(w, "sender is not endorsed: "+err.Error(), http.StatusForbidden)
 				return
 			}
-			if p.Aud == "" {
-				log.Warn("inbox.rejected", "reason", "aud_missing", "caller", string(sender))
-				http.Error(w, "envelope must be signed with an audience matching this inbox", http.StatusUnauthorized)
-				return
-			}
-			if p.Aud != self {
-				log.Warn("inbox.rejected", "reason", "aud_mismatch", "caller", string(sender), "aud", string(p.Aud))
-				http.Error(w, "envelope audience does not match this inbox", http.StatusUnauthorized)
-				return
-			}
-		}
-		if !allowed(allow, present, sender) {
-			log.Warn("inbox.rejected", "reason", "not_allowed", "caller", string(sender))
-			http.Error(w, "sender not accepted", http.StatusForbidden)
-			return
 		}
 
 		// Re-parse the UUID before using it as a filename component.
@@ -902,5 +994,5 @@ func handleInbox(log *slog.Logger, client *net.Client, dir string, self cbc.URI,
 
 		log.Info("inbox.accepted", "caller", string(sender), "envelope", parsedUUID.String())
 		w.WriteHeader(http.StatusAccepted)
-	}
+	})
 }

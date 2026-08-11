@@ -113,7 +113,7 @@ func TestVerifyRemote(t *testing.T) {
 			},
 		},
 		PrivateKey: privateKey,
-		Issuer:     addr.URI(),
+		Issuer:     addr.String(),
 	})
 	require.NoError(t, err)
 	body, err := json.Marshal(env)
@@ -138,7 +138,7 @@ func TestVerifyRemote(t *testing.T) {
 	t.Run("address pin mismatch", func(t *testing.T) {
 		err := VerifyRemote(context.Background(), bytes.NewReader(body), c, net.Address("other.example"))
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "expected other.example")
+		assert.Contains(t, err.Error(), "no signature by other.example")
 	})
 
 	t.Run("invalid JSON", func(t *testing.T) {

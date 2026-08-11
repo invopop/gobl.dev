@@ -5,12 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	stdnet "net"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -24,7 +21,6 @@ import (
 	"github.com/invopop/gobl/head"
 	"github.com/invopop/gobl/net"
 	"github.com/invopop/gobl/note"
-	"github.com/invopop/gobl/org"
 	"github.com/invopop/gobl/uuid"
 )
 
@@ -52,6 +48,8 @@ func TestNetCmdSubcommands(t *testing.T) {
 	assert.True(t, have["serve"])
 	assert.True(t, have["send"])
 	assert.True(t, have["who"])
+	assert.True(t, have["requests"])
+	assert.True(t, have["approve"])
 }
 
 // ---------- net send -----------
@@ -64,8 +62,8 @@ func signedNoteBody(t *testing.T) []byte {
 	env, err := gobl.Envelop(msg)
 	require.NoError(t, err)
 	require.NoError(t, env.Sign(priv,
-		head.WithIssuer(net.Address("peer.example").URI()),
-		head.WithAudience(net.Address("acme.example").URI())))
+		head.WithIssuer(net.Address("peer.example").String()),
+		head.WithAudience(net.Address("acme.example").String())))
 	out, err := json.Marshal(env)
 	require.NoError(t, err)
 	return out
@@ -81,14 +79,14 @@ func TestNetSendCmdMissingTo(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestNetSendCmdSuccess(t *testing.T) {
+func TestNetSendCmdInvalidAddress(t *testing.T) {
+	// The request token's aud must be a valid GOBL Net address, so raw
+	// IP targets are rejected before any transport happens. (The full
+	// send flow is covered in internal/ops with injected fetchers.)
 	body := signedNoteBody(t)
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusAccepted)
-	}))
-	defer srv.Close()
-
 	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	initDomainForCLI(t, filepath.Join(tmp, ".config", "gobl"), "from.example")
 	infile := filepath.Join(tmp, "env.json")
 	require.NoError(t, os.WriteFile(infile, body, 0o644))
 
@@ -96,17 +94,33 @@ func TestNetSendCmdSuccess(t *testing.T) {
 	c := o.cmd()
 	c.SetOut(new(bytes.Buffer))
 	c.SetErr(new(bytes.Buffer))
-	u := strings.TrimPrefix(srv.URL, "http://")
-	c.SetArgs([]string{"--to", u, "--insecure", infile})
-	require.NoError(t, c.Execute())
+	c.SetArgs([]string{"--to", "127.0.0.1:8080", "--from", "from.example", infile})
+	err := c.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid address")
 }
 
 func TestNetSendCmdBadInput(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	initDomainForCLI(t, filepath.Join(tmp, ".config", "gobl"), "from.example")
 	o := netSend(&rootOpts{})
 	c := o.cmd()
 	c.SetOut(new(bytes.Buffer))
 	c.SetErr(new(bytes.Buffer))
-	c.SetArgs([]string{"--to", "acme.example", "--insecure", "/no/such/file.json"})
+	c.SetArgs([]string{"--to", "acme.example", "--from", "from.example", "/no/such/file.json"})
+	err := c.Execute()
+	require.Error(t, err)
+}
+
+func TestNetSendCmdMissingKey(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HOME", tmp)
+	o := netSend(&rootOpts{})
+	c := o.cmd()
+	c.SetOut(new(bytes.Buffer))
+	c.SetErr(new(bytes.Buffer))
+	c.SetArgs([]string{"--to", "acme.example", "--from", "missing.example", "-"})
 	err := c.Execute()
 	require.Error(t, err)
 }
@@ -135,33 +149,31 @@ func TestNetWhoCmdMissingKey(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestNetWhoCmdMissingParty(t *testing.T) {
+// ---------- net requests / approve -----------
+
+func TestNetRequestsCmdEmpty(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
-	initDomainForCLI(t, filepath.Join(tmp, ".config", "gobl"), "from.example")
-	require.NoError(t, os.Remove(filepath.Join(tmp, ".config", "gobl", "from.example", "party.json")))
+	initDomainForCLI(t, filepath.Join(tmp, ".config", "gobl"), "mine.example")
 
-	o := netWho(&rootOpts{})
+	o := netRequests(&rootOpts{})
 	c := o.cmd()
-	c.SetOut(new(bytes.Buffer))
+	out := new(bytes.Buffer)
+	c.SetOut(out)
 	c.SetErr(new(bytes.Buffer))
-	c.SetArgs([]string{"--from", "from.example", "target.example"})
-	err := c.Execute()
-	require.Error(t, err)
+	c.SetArgs([]string{"--domain", "mine.example"})
+	require.NoError(t, c.Execute())
+	assert.JSONEq(t, "[]", out.String())
 }
 
-func TestNetWhoCmdBadPartyJSON(t *testing.T) {
+func TestNetApproveCmdMissingIdentity(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
-	initDomainForCLI(t, filepath.Join(tmp, ".config", "gobl"), "from.example")
-	pj := filepath.Join(tmp, ".config", "gobl", "from.example", "party.json")
-	require.NoError(t, os.WriteFile(pj, []byte("not json"), 0o644))
-
-	o := netWho(&rootOpts{})
+	o := netApprove(&rootOpts{})
 	c := o.cmd()
 	c.SetOut(new(bytes.Buffer))
 	c.SetErr(new(bytes.Buffer))
-	c.SetArgs([]string{"--from", "from.example", "target.example"})
+	c.SetArgs([]string{"--domain", "missing.example", "peer.example"})
 	err := c.Execute()
 	require.Error(t, err)
 }
@@ -208,23 +220,12 @@ func TestNetServeCmdNoDomainsErrors(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestNetServeCmdManualMode(t *testing.T) {
-	// Manual mode wires --party + --keys-dir + --private-key explicitly.
+func TestNetServeCmdConfigDir(t *testing.T) {
+	// A config-dir domain serves until the command context is
+	// cancelled; --allow-unverified and --authority just plumb through.
 	tmp := t.TempDir()
-	priv := dsig.NewES256Key()
-	keysDir := filepath.Join(tmp, "keys")
-	require.NoError(t, os.MkdirAll(keysDir, 0o755))
-	pub, err := json.Marshal(priv.Public())
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(filepath.Join(keysDir, priv.ID()+".json"), pub, 0o644))
-	privBytes, err := json.MarshalIndent(priv, "", "  ")
-	require.NoError(t, err)
-	privFile := filepath.Join(tmp, "private.jwk")
-	require.NoError(t, os.WriteFile(privFile, privBytes, 0o600))
-	partyFile := filepath.Join(tmp, "party.json")
-	partyBytes, err := json.Marshal(&org.Party{Name: "Solo"})
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(partyFile, partyBytes, 0o644))
+	configDir := filepath.Join(tmp, ".config", "gobl")
+	initDomainForCLI(t, configDir, "solo.example")
 
 	o := netServe(&rootOpts{})
 	c := o.cmd()
@@ -232,10 +233,9 @@ func TestNetServeCmdManualMode(t *testing.T) {
 	c.SetErr(new(bytes.Buffer))
 	port := freeCLIPort(t)
 	c.SetArgs([]string{
-		"--keys-dir", keysDir,
-		"--party", partyFile,
-		"--private-key", privFile,
-		"--inbox", filepath.Join(tmp, "inbox"),
+		"--config-dir", configDir,
+		"--authority", "sandbox.example",
+		"--allow-unverified",
 		"--http-port", strconv.Itoa(port),
 	})
 

@@ -7,6 +7,8 @@ package bundle
 import (
 	_ "github.com/invopop/gobl.br.nfe/addon"
 	_ "github.com/invopop/gobl.br.nfse/addon"
+	_ "github.com/invopop/gobl.de.xinvoice/addon/xrechnung"
+	_ "github.com/invopop/gobl.de.xinvoice/addon/zugferd"
 	_ "github.com/invopop/gobl.dk.oioubl/addon"
 	_ "github.com/invopop/gobl.fi.finvoice/addon"
 	_ "github.com/invopop/gobl.fr.ctc/addon"

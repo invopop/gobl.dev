@@ -9,6 +9,7 @@ require (
 	github.com/invopop/gobl v0.504.0
 	github.com/invopop/gobl.br.nfe v0.0.3
 	github.com/invopop/gobl.br.nfse v0.0.1
+	github.com/invopop/gobl.de.xinvoice v0.0.2-0.20260812085924-f9d29f184c92
 	github.com/invopop/gobl.dk.oioubl v0.0.1
 	github.com/invopop/gobl.fi.finvoice v0.0.2
 	github.com/invopop/gobl.fr.ctc v0.0.7

@@ -35,8 +35,8 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/invopop/gobl v0.504.0 h1:RLmZmeAk9RL4rkMUc7xQfC70/RGiBeekRwVgMsMthQA=
 github.com/invopop/gobl v0.504.0/go.mod h1:HmiEdQreTSQYyNbhs81VKTmI7BAJKYC/6enh9RDwnE0=
-github.com/invopop/gobl.br.nfe v0.0.3 h1:NPeJdiaI8/L3X3VtAocaWOVA3jaQBHz6Bheq9RKdWVs=
-github.com/invopop/gobl.br.nfe v0.0.3/go.mod h1:qXzt4bz9S4+nJRbREb9QEAoO1W9r3Sjy6R207W7IuhY=
+github.com/invopop/gobl.br.nfe v0.0.4 h1:/RWQEwP8pHej+8u6u/BNeLKjYZ4NyZJRjWGF2cPEZdo=
+github.com/invopop/gobl.br.nfe v0.0.4/go.mod h1:qXzt4bz9S4+nJRbREb9QEAoO1W9r3Sjy6R207W7IuhY=
 github.com/invopop/gobl.br.nfse v0.0.1 h1:BdwNiG7vk7bPMgE4m102P+UysOxmYWhOKIDfFI6RKEA=
 github.com/invopop/gobl.br.nfse v0.0.1/go.mod h1:m22voo72ZScRiwIS49wXhzGRahzBO+IEAN0M0Kij3QI=
 github.com/invopop/gobl.dk.oioubl v0.0.1 h1:A6owymml+RowMQdWnx2MV6usuMgmdOTl8n34f3MFFaQ=

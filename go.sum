@@ -49,8 +49,8 @@ github.com/invopop/gobl.mx.cfdi v0.63.0 h1:WkwsFCfMZfrG3N8ZHV+7NZ9VlCkYh4vRSUdqv
 github.com/invopop/gobl.mx.cfdi v0.63.0/go.mod h1:sXy7JIXauSKRqT0HgHsFICIV9YXuSHK3Quq9uZWZ9L0=
 github.com/invopop/gobl.pt.saft v0.0.6 h1:K0pcFMq/Q5ojPJqdmRsYJKkzWcKWeyh9pPC5BkPUE14=
 github.com/invopop/gobl.pt.saft v0.0.6/go.mod h1:z5L+dLFBx6PmEdacnFWehYWgiYZSM2HaPzx6ld+DnQs=
-github.com/invopop/gobl.sa.zatca v0.0.3 h1:eHG8KBndLF75iBXNKr65q91ANQ7fuqCgYoOccWDvjhw=
-github.com/invopop/gobl.sa.zatca v0.0.3/go.mod h1:tmLCoaKb4X7sZ2zRU8LalA1sgxM2kQv/uqMzZslhE6A=
+github.com/invopop/gobl.sa.zatca v0.0.4 h1:0BQKJdPazvdXCRosSU5pkQKCaexGQBATXEVqbAMajYk=
+github.com/invopop/gobl.sa.zatca v0.0.4/go.mod h1:tmLCoaKb4X7sZ2zRU8LalA1sgxM2kQv/uqMzZslhE6A=
 github.com/invopop/icons v0.14.0 h1:Bk0hF+EI/x3XwWX1IqMeFDMdu766zY3zFBqTkImCdhU=
 github.com/invopop/icons v0.14.0/go.mod h1:rXrrY2Rz7Z7KINyQIPMaauqXTZNhVMDI2MYIiux436Y=
 github.com/invopop/jsonschema v0.14.0 h1:MHQqLhvpNUZfw+hM3AZDYK7jxO8FZoQeQM77g8iyZjg=

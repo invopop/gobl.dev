@@ -77,3 +77,11 @@ release:
     owner: invopop
     name: gobl.dev
   prerelease: auto
+  # The tag name pins only the core GOBL line (major.minor); the patch is
+  # gobl.dev's own, so a core patch release is absorbed into the next gobl.dev
+  # patch. Publish the exact core version, which the tag name cannot carry.
+  # release-cli.yaml sets GOBL_CORE_VERSION; envOrDefault keeps a local
+  # `goreleaser release` working without it (a bare `.Env` lookup would fail
+  # with "map has no entry for key").
+  header: |
+    {{ with envOrDefault "GOBL_CORE_VERSION" "" }}Built against [GOBL {{ . }}](https://github.com/invopop/gobl/releases/tag/{{ . }}).{{ end }}

@@ -149,10 +149,47 @@ fly.toml           Fly.io configuration
 
 ## Releases
 
-`release-cli.yaml` runs on every push to `main`: it bumps the semver tag
-automatically (patch by default; `#minor` / `#major` in a commit message bump
-further), releases the `gobl` CLI and wasm via GoReleaser, and publishes the
+`release-cli.yaml` runs on every push to `main`: it derives and pushes the next
+semver tag, releases the `gobl` CLI and wasm via GoReleaser, and publishes the
 `gobl-worker` npm package.
+
+### Versioning
+
+gobl.dev pins its **major and minor** to the core
+[GOBL](https://github.com/invopop/gobl) release it is built against, and uses
+the **patch** component for its own releases:
+
+| gobl.dev   | Core GOBL | Meaning |
+|------------|-----------|---------|
+| `v0.505.0` | 0.505.0   | first gobl.dev release on the GOBL 0.505 line |
+| `v0.505.3` | 0.505.x   | fourth gobl.dev release on that line |
+| `v0.506.0` | 0.506.0   | GOBL moved to 0.506, so the patch resets |
+
+A core *patch* release is absorbed into the next gobl.dev patch: if gobl.dev is
+at `v0.505.4` when GOBL 0.505.1 lands, the release carrying it is `v0.505.5`.
+The tag name therefore identifies the core *line*, not the exact core version —
+that is reported by `gobl version` (from the build info), recorded in the
+annotated tag message, and published in the release notes.
+
+The version is a function of `go.mod` plus the existing tags, computed by
+[`.github/scripts/next-version.sh`](.github/scripts/next-version.sh). Bumping
+the GOBL requirement is what moves the minor; there is no manual version step.
+Because releases must only ever move forward, *downgrading* the GOBL
+requirement is refused by that script — roll forward instead.
+
+To track a whole core line rather than an exact release, use the two-component
+form. It is not a valid version, but both Go and npm accept it as a query:
+
+```bash
+# newest gobl.dev on the GOBL 0.505 line
+go get github.com/invopop/gobl.dev@v0.505
+```
+
+```jsonc
+// package.json. Note this floats to new patches on install,
+// where Go resolves the query once.
+{ "dependencies": { "@invopop/gobl-worker": "0.505" } }
+```
 
 ## License
 

@@ -1,9 +1,14 @@
 #
 # Fully-automated release of the GOBL CLI and wasm. On every push to main it
-# bumps the semver tag (patch by default; use #minor / #major in a commit
-# message to bump further), then builds and publishes the `gobl` CLI and the
-# wasm binary as GitHub Release assets via GoReleaser, and uploads the wasm to
-# cdn.gobl.org.
+# derives the next semver tag from the GOBL version this commit builds against
+# (see .github/scripts/next-version.sh), then builds and publishes the `gobl`
+# CLI and the wasm binary as GitHub Release assets via GoReleaser, and uploads
+# the wasm to cdn.gobl.org.
+#
+# gobl.dev pins its major and minor to core GOBL and owns the patch component,
+# so v0.505.3 is the fourth gobl.dev release on the GOBL 0.505 line. The
+# version is therefore a function of go.mod plus the existing tags: bumping the
+# GOBL requirement is what moves the minor, with no manual step.
 #
 # The gobl-worker npm package is published separately by publish-npm.yaml,
 # which runs on successful completion of this workflow and can be re-run
@@ -33,25 +38,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: "0" # all commits, for semver + changelog
+          fetch-depth: "0" # all commits and tags, for version derivation + changelog
 
-      - name: Bump version and push tag
-        id: tag
-        uses: anothrNick/github-tag-action@1.75.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: patch
-          WITH_V: "true"
-          RELEASE_BRANCHES: main
-          # Floor the CLI versioning above core's 0.4xx series. Applies only
-          # when no tags exist yet, so the first release lands at v0.500.1
-          # (INITIAL_VERSION is the pre-bump base); every release stays >= 0.500.0.
-          INITIAL_VERSION: "0.500.0"
-
+      # Before the tag step: next-version.sh resolves the core version with
+      # `go list -m`.
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
+
+      - name: Derive and push release tag
+        id: tag
+        run: |
+          next="$(.github/scripts/next-version.sh)"
+          core="$(go list -m -f '{{.Version}}' github.com/invopop/gobl)"
+          echo "Releasing $next (GOBL $core)"
+          # Annotated so the exact core version survives on the tag itself; the
+          # tag name only identifies the core line.
+          git -c user.name=github-actions \
+              -c user.email=github-actions@github.com \
+              tag -a "$next" -m "$next (GOBL $core)"
+          git push origin "refs/tags/$next"
+          echo "core=$core" >> "$GITHUB_OUTPUT"
 
       - name: Run GoReleaser (CLI + wasm)
         uses: goreleaser/goreleaser-action@v6
@@ -61,6 +69,9 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Recorded in the release notes: the tag name pins only the core
+          # line, so this is where the exact core version is published.
+          GOBL_CORE_VERSION: ${{ steps.tag.outputs.core }}
           # Cloudflare R2 (cdn.gobl.org) credentials for the wasm upload.
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

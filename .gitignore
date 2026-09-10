@@ -22,3 +22,6 @@
 /serve
 go.work
 go.work.sum
+
+# GoReleaser build output (`goreleaser release --snapshot`)
+/dist

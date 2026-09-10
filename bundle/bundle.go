@@ -10,6 +10,7 @@ import (
 	_ "github.com/invopop/gobl.dk.oioubl/addon"
 	_ "github.com/invopop/gobl.fi.finvoice/addon"
 	_ "github.com/invopop/gobl.fr.ctc/addon"
+	_ "github.com/invopop/gobl.it.sdi/addon"
 	_ "github.com/invopop/gobl.mx.cfdi/addon"
 	_ "github.com/invopop/gobl.pt.saft/addon"
 	_ "github.com/invopop/gobl.sa.zatca/addon"

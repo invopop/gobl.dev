@@ -6,12 +6,13 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.504.0
+	github.com/invopop/gobl v0.505.0
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.1
 	github.com/invopop/gobl.dk.oioubl v0.0.1
 	github.com/invopop/gobl.fi.finvoice v0.0.2
-	github.com/invopop/gobl.fr.ctc v0.0.7
+	github.com/invopop/gobl.fr.ctc v0.0.8
+	github.com/invopop/gobl.it.sdi v0.74.0
 	github.com/invopop/gobl.mx.cfdi v0.63.0
 	github.com/invopop/gobl.pt.saft v0.0.6
 	github.com/invopop/gobl.sa.zatca v0.0.4
@@ -22,12 +23,12 @@ require (
 	github.com/mark3labs/mcp-go v0.46.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.11.1
-	gitlab.com/flimzy/testy v0.14.0
+	gitlab.com/flimzy/testy v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	cloud.google.com/go v0.118.0 // indirect
+	cloud.google.com/go v0.119.0 // indirect
 	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Oudwins/tailwind-merge-go v0.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect

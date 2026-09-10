@@ -11,7 +11,7 @@ require (
 	github.com/invopop/gobl.br.nfse v0.0.1
 	github.com/invopop/gobl.dk.oioubl v0.0.1
 	github.com/invopop/gobl.fi.finvoice v0.0.2
-	github.com/invopop/gobl.fr.ctc v0.0.7
+	github.com/invopop/gobl.fr.ctc v0.0.8
 	github.com/invopop/gobl.it.sdi v0.73.0
 	github.com/invopop/gobl.mx.cfdi v0.63.0
 	github.com/invopop/gobl.pt.saft v0.0.6

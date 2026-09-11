@@ -6,7 +6,7 @@
   "homepage": "https://gobl.org",
   "repository": {
     "type": "git",
-    "url": "https://github.com/invopop/gobl.git"
+    "url": "https://github.com/invopop/gobl.dev.git"
   },
   "scripts": {
     "build": "./build.sh",

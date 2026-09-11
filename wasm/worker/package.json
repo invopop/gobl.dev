@@ -5,7 +5,8 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/invopop/gobl.git"
+    "url": "git+https://github.com/invopop/gobl.dev.git",
+    "directory": "wasm/worker"
   },
   "homepage": "https://gobl.org",
   "author": {

@@ -1,13 +1,12 @@
 package api
 
 import (
+	"errors"
 	"net/http"
-	"path"
-	"strings"
 
 	"github.com/invopop/gobl"
+	"github.com/invopop/gobl.dev/internal/ops"
 	"github.com/invopop/gobl/cbc"
-	"github.com/invopop/gobl/data"
 	"github.com/invopop/gobl/i18n"
 	"github.com/invopop/gobl/tax"
 )
@@ -40,14 +39,13 @@ func handleAddon(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !strings.HasSuffix(key, ".json") {
-		key = key + ".json"
-	}
-	p := path.Join("addons", key)
-
-	d, err := data.Content.ReadFile(p)
+	d, err := ops.AddonData(key)
 	if err != nil {
-		WriteError(w, gobl.ErrNotFound.WithReason("addon not found"))
+		if errors.Is(err, ops.ErrAddonNotFound) {
+			WriteError(w, gobl.ErrNotFound.WithReason("addon not found"))
+			return
+		}
+		WriteError(w, gobl.ErrInternal.WithCause(err))
 		return
 	}
 	WriteRawJSON(w, d)

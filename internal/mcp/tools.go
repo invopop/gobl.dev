@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/invopop/gobl"
+	"github.com/invopop/gobl.dev/internal/ops"
 	"github.com/invopop/gobl/cbc"
 	"github.com/invopop/gobl/data"
 	"github.com/invopop/gobl/i18n"
-	"github.com/invopop/gobl.dev/internal/ops"
 	"github.com/invopop/gobl/pkg/here"
 	"github.com/invopop/gobl/tax"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -302,12 +302,7 @@ func handleAddonTool(_ context.Context, request mcp.CallToolRequest) (*mcp.CallT
 		return mcp.NewToolResultError("'key' argument is required"), nil
 	}
 
-	if !strings.HasSuffix(key, ".json") {
-		key = key + ".json"
-	}
-	p := path.Join("addons", key)
-
-	d, err := data.Content.ReadFile(p)
+	d, err := ops.AddonData(key)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("addon not found: %s", err)), nil
 	}

@@ -7,6 +7,12 @@ import (
 
 	"github.com/invopop/gobl"
 	goblmcp "github.com/invopop/gobl.dev/internal/mcp"
+
+	// Register the full GOBL addon set, as the real binaries do, so the addon
+	// tools are exercised against externally-implemented addons and not just
+	// those compiled into core GOBL.
+	_ "github.com/invopop/gobl.dev/bundle"
+
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/stretchr/testify/assert"
@@ -480,6 +486,20 @@ func TestAddonTool(t *testing.T) {
 		assert.True(t, result.IsError)
 		text := extractText(t, result)
 		assert.Contains(t, text, "key")
+	})
+
+	// Addons implemented in their own modules ship no file in core GOBL's
+	// embedded data directory, so the tool reported them as not found.
+	t.Run("externally implemented addon", func(t *testing.T) {
+		result := callTool(t, s, "addon", map[string]any{
+			"key": "mx-cfdi-v4",
+		})
+		require.False(t, result.IsError)
+
+		var got map[string]any
+		require.NoError(t, json.Unmarshal([]byte(extractText(t, result)), &got))
+		assert.Equal(t, "mx-cfdi-v4", got["key"])
+		assert.NotEmpty(t, got["extensions"], "expected the full definition, not just a stub")
 	})
 }
 

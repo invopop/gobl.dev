@@ -5,6 +5,12 @@ import (
 	"encoding/json"
 	"testing"
 
+	// Register the full GOBL addon set, as the real binaries do, so the addon
+	// resources are exercised against externally-implemented addons and not
+	// just those compiled into core GOBL.
+	_ "github.com/invopop/gobl.dev/bundle"
+
+	"github.com/invopop/gobl/tax"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -138,6 +144,30 @@ func TestHandleAddonResource(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "addon not found")
 	})
+
+	// Addons implemented in their own modules ship no file in core GOBL's
+	// embedded data directory, so reading from there returned "addon not
+	// found" for every one of them.
+	t.Run("every registered addon is readable", func(t *testing.T) {
+		defs := tax.AllAddonDefs()
+		require.NotEmpty(t, defs)
+
+		for _, def := range defs {
+			key := def.Key.String()
+			t.Run(key, func(t *testing.T) {
+				result, err := handleAddonResource(context.Background(), makeReadRequest("gobl://addons/"+key))
+				require.NoError(t, err)
+				require.Len(t, result, 1)
+
+				tc, ok := result[0].(mcp.TextResourceContents)
+				require.True(t, ok)
+
+				var got map[string]any
+				require.NoError(t, json.Unmarshal([]byte(tc.Text), &got))
+				assert.Equal(t, key, got["key"])
+			})
+		}
+	})
 }
 
 func TestHandleSchemaList(t *testing.T) {
@@ -192,6 +222,9 @@ func TestHandleAddonList(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal([]byte(tc.Text), &data))
 	assert.NotEmpty(t, data.Addons)
+	assert.Contains(t, data.Addons, "es-verifactu-v1", "core addon missing")
+	assert.Contains(t, data.Addons, "mx-cfdi-v4", "externally-implemented addon missing")
+	assert.Len(t, data.Addons, len(tax.AllAddonDefs()))
 }
 
 func TestListDataDir(t *testing.T) {

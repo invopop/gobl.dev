@@ -10,7 +10,14 @@ import (
 
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl.dev/api"
+
+	// Register the full GOBL addon set, as the real binaries do, so the
+	// addon endpoints are exercised against externally-implemented addons
+	// and not just those compiled into core GOBL.
+	_ "github.com/invopop/gobl.dev/bundle"
+
 	"github.com/invopop/gobl/dsig"
+	"github.com/invopop/gobl/tax"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -555,6 +562,43 @@ func TestAddonEndpoint(t *testing.T) {
 		require.NoError(t, err)
 		defer resp.Body.Close() //nolint:errcheck
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	})
+
+	// Addons implemented in their own modules ship no file in core GOBL's
+	// embedded data directory, so serving them from there returned 404 even
+	// though /addons advertised them.
+	t.Run("externally implemented addon", func(t *testing.T) {
+		resp, err := http.Get(srv.URL + prefix + "/addons/mx-cfdi-v4")
+		require.NoError(t, err)
+		defer resp.Body.Close() //nolint:errcheck
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var def map[string]any
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&def))
+		assert.Equal(t, "mx-cfdi-v4", def["key"])
+		assert.Equal(t, "https://gobl.org/draft-0/tax/addon-def", def["$schema"])
+		assert.NotEmpty(t, def["extensions"], "expected the full definition, not just a stub")
+	})
+
+	// The invariant that actually broke: anything /addons lists must be
+	// retrievable from /addons/{key}, whichever module implements it.
+	t.Run("every listed addon is retrievable", func(t *testing.T) {
+		defs := tax.AllAddonDefs()
+		require.NotEmpty(t, defs)
+
+		for _, def := range defs {
+			key := def.Key.String()
+			t.Run(key, func(t *testing.T) {
+				resp, err := http.Get(srv.URL + prefix + "/addons/" + key)
+				require.NoError(t, err)
+				defer resp.Body.Close() //nolint:errcheck
+				require.Equal(t, http.StatusOK, resp.StatusCode)
+
+				var got map[string]any
+				require.NoError(t, json.NewDecoder(resp.Body).Decode(&got))
+				assert.Equal(t, key, got["key"])
+			})
+		}
 	})
 }
 

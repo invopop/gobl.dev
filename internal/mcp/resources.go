@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/invopop/gobl.dev/internal/ops"
 	"github.com/invopop/gobl/data"
 	"github.com/invopop/gobl/schema"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -129,12 +130,7 @@ func handleAddonResource(_ context.Context, request mcp.ReadResourceRequest) ([]
 		return nil, fmt.Errorf("missing addon key")
 	}
 
-	if !strings.HasSuffix(key, ".json") {
-		key = key + ".json"
-	}
-	p := path.Join("addons", key)
-
-	d, err := data.Content.ReadFile(p)
+	d, err := ops.AddonData(key)
 	if err != nil {
 		return nil, fmt.Errorf("addon not found: %w", err)
 	}
@@ -190,12 +186,7 @@ func handleRegimeList(_ context.Context, _ mcp.ReadResourceRequest) ([]mcp.Resou
 }
 
 func handleAddonList(_ context.Context, _ mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-	items, err := listDataDir("addons")
-	if err != nil {
-		return nil, err
-	}
-
-	d, err := marshalJSON(map[string]any{"addons": items})
+	d, err := marshalJSON(map[string]any{"addons": ops.AddonKeys()})
 	if err != nil {
 		return nil, err
 	}

@@ -15,7 +15,7 @@ require (
 	github.com/invopop/gobl.it.sdi v0.77.0
 	github.com/invopop/gobl.mx.cfdi v0.64.0
 	github.com/invopop/gobl.pl.ksef v0.45.0
-	github.com/invopop/gobl.pt.saft v0.0.7
+	github.com/invopop/gobl.pt.saft v0.0.8
 	github.com/invopop/gobl.sa.zatca v0.0.4
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0

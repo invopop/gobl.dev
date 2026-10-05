@@ -12,7 +12,7 @@ require (
 	github.com/invopop/gobl.dk.oioubl v0.0.6
 	github.com/invopop/gobl.fi.finvoice v0.0.2
 	github.com/invopop/gobl.fr.ctc v0.0.8
-	github.com/invopop/gobl.it.sdi v0.77.0
+	github.com/invopop/gobl.it.sdi v0.81.0
 	github.com/invopop/gobl.mx.cfdi v0.64.0
 	github.com/invopop/gobl.pl.ksef v0.45.0
 	github.com/invopop/gobl.pt.saft v0.0.8

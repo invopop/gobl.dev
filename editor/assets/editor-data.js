@@ -8,6 +8,9 @@ document.addEventListener("alpine:init", () => {
     error: null,
     // Counter so each successful build creates a fresh FlashMessage.
     success: 0,
+    // Key of the format to export the built document into, if any.
+    format: localStorage.getItem("editor-format") || "",
+    exporting: false,
 
     init() {
       window.addEventListener("keydown", (e) => {
@@ -16,6 +19,7 @@ document.addEventListener("alpine:init", () => {
           this.build();
         }
       });
+      this.$watch("format", (v) => localStorage.setItem("editor-format", v));
     },
 
     async build() {
@@ -58,10 +62,52 @@ document.addEventListener("alpine:init", () => {
         });
         ed.focus();
         this.success++;
+        await this.export(result);
       } catch (e) {
         this.error = { message: e.message };
       } finally {
         this.loading = false;
+      }
+    },
+
+    // exportCurrent exports the document in the editor, as it is, into the
+    // selected format.
+    async exportCurrent() {
+      const ed = window._cmEditor;
+      if (!ed || !this.format) return;
+      this.error = null;
+      try {
+        await this.export(JSON.parse(ed.state.doc.toString()));
+      } catch (e) {
+        this.error = { message: e.message };
+      }
+    },
+
+    // export converts the document or envelope into the selected format
+    // and shows the result in the viewer pane. Errors are shown in the
+    // error panel in the same shape as build errors.
+    async export(doc) {
+      if (!this.format || !window._cmSetViewer) return;
+      this.exporting = true;
+      try {
+        const res = await fetch(
+          "/v0/export?format=" + encodeURIComponent(this.format),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(doc),
+          },
+        );
+        if (!res.ok) {
+          this.error = await res.json().catch(() => ({
+            message: "export failed: " + res.status,
+          }));
+          window._cmSetViewer("");
+          return;
+        }
+        window._cmSetViewer(await res.text());
+      } finally {
+        this.exporting = false;
       }
     },
   }));

@@ -15,7 +15,7 @@ Released under the Apache 2.0 [LICENSE](https://github.com/invopop/gobl.dev/blob
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/invopop/gobl.dev)
 
 Core GOBL is a pure document library. This project composes it with every
-GOBL addon (see [`bundle/`](./bundle)) and ships two binaries:
+GOBL addon and converter (see [`bundle/`](./bundle)) and ships two binaries:
 
 | Binary     | Package          | What it is |
 |------------|------------------|------------|
@@ -43,6 +43,7 @@ Commands:
 | `gobl sign` | Sign an envelope with a JWK private key. |
 | `gobl verify` | Verify an envelope's signatures. |
 | `gobl replicate` | Clone a document with a fresh UUID. |
+| `gobl convert` | Convert documents between GOBL and external formats such as UBL and CII (see [Converters](#converters)). |
 | `gobl keygen` | Generate an ES256 key pair. |
 | `gobl serve` | Launch the HTTP API server (see [API](#http-api)). |
 | `gobl mcp` | Launch a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio for AI tools and editors. |
@@ -59,6 +60,13 @@ gobl build -i ./invoice.yaml --set-file customer=./party.yaml --set series=TEST
 
 # Correct an invoice with a credit note
 gobl correct -i ./invoice.json --credit
+
+# Export an invoice as UBL, and import it back into GOBL
+gobl convert ./invoice.json ./invoice.xml --to ubl+en16931-v2017
+gobl convert -i ./invoice.xml
+
+# List the available conversion formats
+gobl convert --list -i
 
 # Serve the HTTP API on :8080
 gobl serve
@@ -102,6 +110,8 @@ the `/v0` prefix:
 | `POST` | `/v0/verify` | Verify an envelope's signatures |
 | `POST` | `/v0/correct` | Generate a corrective document (credit/debit note) |
 | `POST` | `/v0/replicate` | Clone a document with a new UUID |
+| `POST` | `/v0/import` | Detect the format of the raw body (e.g. UBL XML) and import it into a GOBL envelope; `?format=` limits detection |
+| `POST` | `/v0/export?format={key}` | Export a GOBL document or envelope into the first accepting format; the key used is returned in the `GOBL-Format` header |
 | `POST` | `/v0/keygen` | Generate an ES256 key pair |
 | `GET` | `/v0/schemas` | List registered JSON schemas |
 | `GET` | `/v0/schemas/{path}` | Fetch a specific schema (add `?bundle` for bundled) |
@@ -109,6 +119,7 @@ the `/v0` prefix:
 | `GET` | `/v0/regimes/{code}` | Fetch a specific tax regime definition |
 | `GET` | `/v0/addons` | List available addons |
 | `GET` | `/v0/addons/{key}` | Fetch a specific addon definition |
+| `GET` | `/v0/formats` | List the conversion formats registered by the bundled converters |
 | `POST` | `/v0/mcp` | Model Context Protocol (MCP) endpoint |
 | `GET` | `/v0/openapi.json` | OpenAPI specification |
 
@@ -129,6 +140,26 @@ workflow attaches the wasm build to each GitHub Release, uploads it to
 addons the binaries ship with — one blank import per addon module. Add an
 approved addon there and both `gobl` and `gobl.dev` pick it up.
 
+## Converters
+
+Conversions between GOBL and external formats go through GOBL's
+[`convert`](https://github.com/invopop/gobl/tree/main/convert) register:
+converter modules register their formats when imported, and gobl.dev offers
+exactly the formats registered, through `gobl convert`, the `/v0/import`,
+`/v0/export` and `/v0/formats` endpoints, and the editor's export pane. The
+converters are blank-imported in [`bundle/bundle.go`](./bundle/bundle.go)
+alongside the addons:
+
+| Module | Formats |
+|--------|---------|
+| [gobl.ubl](https://github.com/invopop/gobl.ubl) | `ubl+en16931-v2017`, `ubl+peppol+bis-v3` |
+| [gobl.cii](https://github.com/invopop/gobl.cii) | `cii+en16931-v2017`, `cii+peppol+bis-v3` |
+
+Format keys follow GOBL's naming rules (`<syntax>[+<layer>...]`). Exported
+documents must include the addons a format requires, such as
+`eu-en16931-v2017` for the EN 16931 formats. Regional formats appear as the
+modules implementing them register with the convert package.
+
 ## Project structure
 
 ```
@@ -136,7 +167,7 @@ cmd/
   gobl/            CLI entry point          (binary: gobl)
   gobl.dev/        web server entry point   (binary: gobl.dev)
 api/               HTTP API handler (package api)
-bundle/            addon registration (package bundle)
+bundle/            addon and converter registration (package bundle)
 editor/            browser editor (PopUI + Templ)
 internal/
   ops/             document operations engine (build, validate, sign, …)

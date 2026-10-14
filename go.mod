@@ -6,17 +6,21 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.507.0
+	github.com/invopop/gobl v0.508.0
+	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
+	github.com/invopop/gobl.cii v0.69.0
+	github.com/invopop/gobl.co.dian v0.0.3
 	github.com/invopop/gobl.dk.oioubl v0.0.9
-	github.com/invopop/gobl.fi.finvoice v0.0.2
+	github.com/invopop/gobl.fi.finvoice v0.0.6
 	github.com/invopop/gobl.fr.ctc v0.0.8
-	github.com/invopop/gobl.it.sdi v0.81.0
-	github.com/invopop/gobl.mx.cfdi v0.64.0
-	github.com/invopop/gobl.pl.ksef v0.45.0
+	github.com/invopop/gobl.it.sdi v0.83.0
+	github.com/invopop/gobl.mx.cfdi v0.68.0
+	github.com/invopop/gobl.pl.ksef v0.47.0
 	github.com/invopop/gobl.pt.saft v0.0.8
 	github.com/invopop/gobl.sa.zatca v0.0.4
+	github.com/invopop/gobl.ubl v0.86.0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1
@@ -34,6 +38,7 @@ require (
 	github.com/Oudwins/tailwind-merge-go v0.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/beevik/etree v1.6.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect
@@ -42,6 +47,10 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
+	github.com/invopop/validation v0.8.0 // indirect
+	github.com/invopop/xmlctx v0.13.0 // indirect
+	github.com/invopop/xmldsig v0.14.0 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/labstack/echo/v4 v4.15.3 // indirect
 	github.com/labstack/gommon v0.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -49,6 +58,7 @@ require (
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/russellhaering/goxmldsig v1.6.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
@@ -59,4 +69,5 @@ require (
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
+	software.sslmate.com/src/go-pkcs12 v0.7.0 // indirect
 )

@@ -1,13 +1,15 @@
 // editor.js -- ES module for GOBL Editor
-// Initializes CodeMirror with JSON schema support.
+// Initializes CodeMirror with JSON schema support, plus a read-only XML
+// viewer for exported documents.
 
 import { basicSetup, EditorView } from "codemirror";
 import { EditorState, Compartment } from "@codemirror/state";
 import { vsCodeLight } from "@fsegurai/codemirror-theme-vscode-light";
 import { vsCodeDark } from "@fsegurai/codemirror-theme-vscode-dark";
 
-// Theme compartment allows dynamic reconfiguration.
+// Theme compartments allow dynamic reconfiguration.
 const themeCompartment = new Compartment();
+const viewerThemeCompartment = new Compartment();
 
 function isDark() {
   return document.documentElement.classList.contains("dark");
@@ -48,6 +50,7 @@ const defaultDoc = JSON.stringify(
 );
 
 const { jsonSchema, updateSchema } = await import("codemirror-json-schema");
+const { xml } = await import("@codemirror/lang-xml");
 
 const SCHEMA_PREFIX = "https://gobl.org/draft-0/";
 let activeSchemaURL = null;
@@ -70,7 +73,7 @@ async function loadSchemaFromDoc(view) {
   }
 }
 
-const container = document.getElementById("editor-container");
+const container = document.getElementById("editor-pane");
 container.replaceChildren();
 
 const editor = new EditorView({
@@ -95,11 +98,30 @@ const editor = new EditorView({
   parent: container,
 });
 
+const viewer = new EditorView({
+  state: EditorState.create({
+    doc: "",
+    extensions: [
+      basicSetup,
+      viewerThemeCompartment.of(isDark() ? vsCodeDark : vsCodeLight),
+      EditorView.lineWrapping,
+      EditorState.readOnly.of(true),
+      xml(),
+    ],
+  }),
+  parent: document.getElementById("viewer-xml"),
+});
+
 window._cmEditor = editor;
-window._cmSetDark = (dark) => {
-  editor.dispatch({
-    effects: themeCompartment.reconfigure(dark ? vsCodeDark : vsCodeLight),
+window._cmSetViewer = (text) => {
+  viewer.dispatch({
+    changes: { from: 0, to: viewer.state.doc.length, insert: text },
   });
+};
+window._cmSetDark = (dark) => {
+  const theme = dark ? vsCodeDark : vsCodeLight;
+  editor.dispatch({ effects: themeCompartment.reconfigure(theme) });
+  viewer.dispatch({ effects: viewerThemeCompartment.reconfigure(theme) });
 };
 loadSchemaFromDoc(editor);
 

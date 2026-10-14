@@ -3,6 +3,12 @@
   flex: 1;
   overflow: hidden;
 }
+#editor-pane,
+#viewer-pane,
+#viewer-xml {
+  height: 100%;
+  overflow: hidden;
+}
 .cm-editor {
   height: 100%;
 }

@@ -52,8 +52,8 @@ func WithRoutes(fn func(mux *http.ServeMux, prefix string)) Option {
 // registered under the major-version prefix (e.g. /v0/build).
 //
 // By default the handler includes document operations (build, validate,
-// correct, replicate, sign, verify), reference data (schemas, regimes,
-// addons), key generation, the OpenAPI spec, and a version/health endpoint.
+// correct, replicate, sign, verify, import, export), reference data (schemas,
+// regimes, addons, formats), key generation, the OpenAPI spec, and a version/health endpoint.
 // CORS, version-header, timing, and logging middleware are always applied.
 //
 // Use [WithMCP], [WithFavicon], and [WithRoutes] to enable additional
@@ -75,6 +75,8 @@ func NewHandler(opts ...Option) http.Handler {
 	mux.HandleFunc("POST "+p+"/replicate", handleReplicate)
 	mux.HandleFunc("POST "+p+"/sign", handleSign)
 	mux.HandleFunc("POST "+p+"/verify", handleVerify)
+	mux.HandleFunc("POST "+p+"/import", handleImport)
+	mux.HandleFunc("POST "+p+"/export", handleExport)
 
 	// Reference data (static per version — ETag for caching)
 	mux.HandleFunc("GET "+p+"/schemas", WithETag(handleSchemaList))
@@ -83,6 +85,7 @@ func NewHandler(opts ...Option) http.Handler {
 	mux.HandleFunc("GET "+p+"/regimes/{code}", WithETag(handleRegime))
 	mux.HandleFunc("GET "+p+"/addons", WithETag(handleAddonList))
 	mux.HandleFunc("GET "+p+"/addons/{key...}", WithETag(handleAddon))
+	mux.HandleFunc("GET "+p+"/formats", WithETag(handleFormatList))
 
 	// MCP (Streamable HTTP — stateless)
 	if cfg.withMCP {
@@ -203,6 +206,7 @@ func withCORS(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Expose-Headers", "GOBL-Version, "+FormatHeader)
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

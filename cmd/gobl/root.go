@@ -33,6 +33,7 @@ func (o *rootOpts) cmd() *cobra.Command {
 	cmd.AddCommand(sign(o).cmd())
 	cmd.AddCommand(correct(o).cmd())
 	cmd.AddCommand(replicate(o).cmd())
+	cmd.AddCommand(convert(o).cmd())
 	cmd.AddCommand(versionCmd())
 	cmd.AddCommand(serve().cmd())
 	cmd.AddCommand(mcpServe().cmd())

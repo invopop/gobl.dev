@@ -1,12 +1,16 @@
 package bundle
 
-// Package bundle declares the addon set that GOBL.dev ships with. Blank-importing
-// it registers every addon listed here, so both the CLI and the web/API binaries
-// support the same set. Add a blank import per approved addon module — this is the
-// one place to update.
+// Package bundle declares the addon and converter set that GOBL.dev ships with.
+// Blank-importing it registers every addon and converter listed here, so both the
+// CLI and the web/API binaries support the same set. Add a blank import per
+// approved addon module, or per converter module that registers formats with
+// GOBL's convert package — this is the one place to update.
 import (
+	// Addons
+	_ "github.com/invopop/gobl.ar.arca/addon"
 	_ "github.com/invopop/gobl.br.nfe/addon"
 	_ "github.com/invopop/gobl.br.nfse/addon"
+	_ "github.com/invopop/gobl.co.dian/addon"
 	_ "github.com/invopop/gobl.dk.oioubl/addon"
 	_ "github.com/invopop/gobl.fi.finvoice/addon"
 	_ "github.com/invopop/gobl.fr.ctc/addon"
@@ -15,4 +19,8 @@ import (
 	_ "github.com/invopop/gobl.pl.ksef/addon"
 	_ "github.com/invopop/gobl.pt.saft/addon"
 	_ "github.com/invopop/gobl.sa.zatca/addon"
+
+	// Converters
+	_ "github.com/invopop/gobl.cii"
+	_ "github.com/invopop/gobl.ubl"
 )

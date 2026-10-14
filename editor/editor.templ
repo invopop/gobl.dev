@@ -13,6 +13,7 @@ templ Page() {
 		Importmap: []props.Import{
 			{Name: "codemirror", URL: "https://esm.sh/codemirror@6.0.1"},
 			{Name: "@codemirror/state", URL: "https://esm.sh/@codemirror/state@6"},
+			{Name: "@codemirror/lang-xml", URL: "https://esm.sh/@codemirror/lang-xml@6"},
 			{Name: "codemirror-json-schema", URL: "https://esm.sh/@invopop/codemirror-json-schema@0.9.3"},
 			{Name: "@fsegurai/codemirror-theme-vscode-light", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-light@6"},
 			{Name: "@fsegurai/codemirror-theme-vscode-dark", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-dark@6"},
@@ -32,6 +33,7 @@ templ Page() {
 		@popui.Header(props.Header{
 			Title: goblTitle(),
 		}) {
+			@exportPicker()
 			<template x-if="success > 0">
 				@popui.FlashMessage(props.FlashMessage{
 					Type:    "success",
@@ -86,11 +88,35 @@ templ Page() {
 					</template>
 				</details>
 			</div>
-			<div id="editor-container">
-				@editorSkeleton()
+			<div id="editor-container" class="flex min-h-0">
+				<div id="editor-pane" class="flex-1 min-w-0">
+					@editorSkeleton()
+				</div>
+				<div id="viewer-pane" x-show="format" x-cloak class="flex-1 min-w-0 border-l border-border relative">
+					<div class="absolute top-2 right-3 text-xs text-icon-default-secondary z-10" x-show="exporting">Exporting…</div>
+					<div id="viewer-xml"></div>
+				</div>
 			</div>
 		}
 	}
+}
+
+// exportPicker selects a format, registered with GOBL's convert package, to
+// show the built document in alongside the editor.
+templ exportPicker() {
+	<label class="flex items-center gap-2 text-sm">
+		<span class="text-icon-default-secondary">Export</span>
+		<select
+			x-model="format"
+			@change="exportCurrent()"
+			class="bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
+		>
+			<option value="">None</option>
+			for _, f := range exportFormats() {
+				<option value={ f.Key }>{ f.Label }</option>
+			}
+		</select>
+	</label>
 }
 
 templ editorSkeleton() {

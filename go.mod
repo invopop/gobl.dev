@@ -6,9 +6,11 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.507.0
+	github.com/invopop/gobl v0.508.0
+	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
+	github.com/invopop/gobl.co.dian v0.0.3
 	github.com/invopop/gobl.dk.oioubl v0.0.9
 	github.com/invopop/gobl.fi.finvoice v0.0.2
 	github.com/invopop/gobl.fr.ctc v0.0.8

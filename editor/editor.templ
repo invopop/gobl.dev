@@ -14,6 +14,7 @@ templ Page() {
 			{Name: "codemirror", URL: "https://esm.sh/codemirror@6.0.1"},
 			{Name: "@codemirror/state", URL: "https://esm.sh/@codemirror/state@6"},
 			{Name: "@codemirror/lang-xml", URL: "https://esm.sh/@codemirror/lang-xml@6"},
+			{Name: "@codemirror/lang-json", URL: "https://esm.sh/@codemirror/lang-json@6"},
 			{Name: "codemirror-json-schema", URL: "https://esm.sh/@invopop/codemirror-json-schema@0.9.3"},
 			{Name: "@fsegurai/codemirror-theme-vscode-light", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-light@6"},
 			{Name: "@fsegurai/codemirror-theme-vscode-dark", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-dark@6"},
@@ -33,41 +34,45 @@ templ Page() {
 		@popui.Header(props.Header{
 			Title: goblTitle(),
 		}) {
-			@exportPicker()
+			@modeTabs()
+			@examplePicker()
+			@formatPicker()
 			<template x-if="success > 0">
 				@popui.FlashMessage(props.FlashMessage{
 					Type:    "success",
-					Message: "Built",
+					Message: "Done",
 					Attributes: templ.Attributes{
 						":key": "success",
 					},
 				})
 			</template>
-			@popui.Button(props.Button{
-				Attributes: templ.Attributes{
-					"@click": "envelop = !envelop",
-				},
-			}) {
-				@popui.Checkbox(props.Checkbox{
+			<div x-show="mode === 'build'">
+				@popui.Button(props.Button{
 					Attributes: templ.Attributes{
-						"x-model":        "envelop",
-						"@click.stop":    "",
-						"tabindex":       "-1",
-						"pointer-events": "none",
+						"@click": "envelop = !envelop",
 					},
-					Class: "pointer-events-none",
-				})
-				Envelop
-			}
+				}) {
+					@popui.Checkbox(props.Checkbox{
+						Attributes: templ.Attributes{
+							"x-model":        "envelop",
+							"@click.stop":    "",
+							"tabindex":       "-1",
+							"pointer-events": "none",
+						},
+						Class: "pointer-events-none",
+					})
+					Envelop
+				}
+			</div>
 			@popui.Button(props.Button{
 				Variant: props.ButtonVariantPrimary,
 				Attributes: templ.Attributes{
-					"@click":    "build()",
-					":disabled": "loading",
-					"title":     "Build (⌘/Ctrl+Enter)",
+					"@click":    "run()",
+					":disabled": "loading || (mode === 'export' && !format)",
+					"title":     "Run (⌘/Ctrl+Enter)",
 				},
 			}) {
-				Build
+				<span x-text="actionLabel">Build</span>
 			}
 			@darkModeToggle()
 		}
@@ -89,34 +94,87 @@ templ Page() {
 				</details>
 			</div>
 			<div id="editor-container" class="flex min-h-0">
-				<div id="editor-pane" class="flex-1 min-w-0">
-					@editorSkeleton()
+				<div class="pane flex-1 min-w-0 flex flex-col">
+					<div class="pane-title" x-text="mode === 'import' ? 'Input' : 'GOBL'"></div>
+					<div id="source-gobl" class="pane-body" x-show="mode !== 'import'">
+						@editorSkeleton()
+					</div>
+					<div id="source-xml" class="pane-body" x-show="mode === 'import'" x-cloak></div>
 				</div>
-				<div id="viewer-pane" x-show="format" x-cloak class="flex-1 min-w-0 border-l border-border relative">
-					<div class="absolute top-2 right-3 text-xs text-icon-default-secondary z-10" x-show="exporting">Exporting…</div>
-					<div id="viewer-xml"></div>
+				<div class="pane flex-1 min-w-0 flex flex-col border-l border-border" x-show="mode !== 'build'" x-cloak>
+					<div class="pane-title">
+						<span x-text="viewerTitle"></span>
+						<span class="ml-auto" x-show="loading">Working…</span>
+					</div>
+					<div id="viewer" class="pane-body"></div>
 				</div>
 			</div>
 		}
 	}
 }
 
-// exportPicker selects a format, registered with GOBL's convert package, to
-// show the built document in alongside the editor.
-templ exportPicker() {
-	<label class="flex items-center gap-2 text-sm">
-		<span class="text-icon-default-secondary">Export</span>
-		<select
-			x-model="format"
-			@change="exportCurrent()"
-			class="bg-background border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary"
-		>
-			<option value="">None</option>
-			for _, f := range exportFormats() {
-				<option value={ f.Key }>{ f.Label }</option>
+// modeTabs switches between building GOBL documents, exporting them into a
+// registered format, and importing documents in a registered format.
+templ modeTabs() {
+	@popui.Tabs(props.Tabs{Variant: "pill", Class: "mb-0 w-auto"}) {
+		for _, m := range []struct{ Key, Label string }{{"build", "Build"}, {"export", "Export"}, {"import", "Import"}} {
+			@popui.Tab(props.Tab{
+				Variant: "pill",
+				Attributes: templ.Attributes{
+					"@click":           "setMode('" + m.Key + "')",
+					":data-state":      "mode === '" + m.Key + "' ? 'active' : ''",
+					":aria-selected":   "mode === '" + m.Key + "'",
+				},
+			}) {
+				{ m.Label }
 			}
-		</select>
-	</label>
+		}
+	}
+}
+
+// examplePicker loads a bare-minimum document for a region. In import mode,
+// only examples with an export format are offered, as the output of the
+// first one.
+templ examplePicker() {
+	<select
+		aria-label="Example"
+		x-model="exampleID"
+		@change="loadExample(exampleID)"
+		class="h-8 bg-background border border-border rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+	>
+		<option value="" disabled>Examples…</option>
+		for _, ex := range examples() {
+			<option
+				value={ ex.ID }
+				if !ex.importable() {
+					:disabled="mode === 'import'"
+				}
+			>
+				{ ex.Region } · { ex.Label }
+			</option>
+		}
+	</select>
+}
+
+// formatPicker selects the format to export into, from those registered with
+// GOBL's convert package that match the document's schema and addons.
+templ formatPicker() {
+	<select
+		aria-label="Format"
+		x-show="mode === 'export'"
+		x-cloak
+		x-model="format"
+		@change="run()"
+		:disabled="!available.length"
+		class="h-8 bg-background border border-border rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+	>
+		<template x-if="!available.length">
+			<option value="">No formats for this document's addons</option>
+		</template>
+		<template x-for="f in available" :key="f.key">
+			<option :value="f.key" :selected="f.key === format" x-text="f.label"></option>
+		</template>
+	</select>
 }
 
 templ editorSkeleton() {
@@ -154,7 +212,12 @@ templ headExtras() {
 		if (localStorage.getItem("dark-mode") === "true") {
 			document.documentElement.classList.add("dark");
 		}
+		// Resolved by editor.js with its editors once CodeMirror is mounted.
+		// The module loads after alpine:init may have fired, so the editor
+		// component waits on this promise.
+		window._cmReady = new Promise((r) => { window._cmReadyResolve = r; });
 	</script>
+	@templ.JSONScript("editor-bootstrap", bootstrap())
 }
 
 templ darkModeToggle() {

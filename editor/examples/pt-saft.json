@@ -1,0 +1,22 @@
+{
+	"$schema": "https://gobl.org/draft-0/bill/invoice",
+	"$addons": ["pt-saft-v1"],
+	"series": "FT SAMPLE",
+	"code": "1",
+	"currency": "EUR",
+	"issue_date": "2026-01-15",
+	"supplier": {
+		"name": "Provide One Lda.",
+		"tax_id": { "country": "PT", "code": "545259045" }
+	},
+	"customer": {
+		"name": "Sample Consumer"
+	},
+	"lines": [
+		{
+			"quantity": "10",
+			"item": { "name": "Serviços de desenvolvimento", "price": "100.00" },
+			"taxes": [{ "cat": "VAT", "rate": "general" }]
+		}
+	]
+}

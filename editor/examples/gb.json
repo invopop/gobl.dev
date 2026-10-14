@@ -1,0 +1,19 @@
+{
+	"$schema": "https://gobl.org/draft-0/bill/invoice",
+	"currency": "GBP",
+	"issue_date": "2026-01-15",
+	"supplier": {
+		"name": "Provide One Ltd.",
+		"tax_id": { "country": "GB", "code": "350983637" }
+	},
+	"customer": {
+		"name": "Sample Consumer Ltd."
+	},
+	"lines": [
+		{
+			"quantity": "10",
+			"item": { "name": "Development services", "price": "100.00" },
+			"taxes": [{ "cat": "VAT", "rate": "standard" }]
+		}
+	]
+}

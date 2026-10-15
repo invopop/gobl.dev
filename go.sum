@@ -51,8 +51,8 @@ github.com/invopop/gobl.de.xinvoice v0.0.7 h1:CeCaf37qLiha6QDoBtQ16zLKR02ltIPFLw
 github.com/invopop/gobl.de.xinvoice v0.0.7/go.mod h1:IJ3vnhuRjkQ4rkOFycuY80vsACDM4jsle+q4CBewxbk=
 github.com/invopop/gobl.dk.oioubl v0.0.9 h1:Bi3KXZah0Q9SqZWS57VWulGsHif4itCqtBgzj1LgOZ8=
 github.com/invopop/gobl.dk.oioubl v0.0.9/go.mod h1:+5kt1RYq0I6g3R8MEFo9qrXJORBy1uVDpNl4CJyQY6E=
-github.com/invopop/gobl.es.facturae v0.23.1-0.20261015115921-884a29792e3c h1:1H3SJ9OIB6arIaChmHbsNviIbQRf3KC2pZHCymncO2A=
-github.com/invopop/gobl.es.facturae v0.23.1-0.20261015115921-884a29792e3c/go.mod h1:XZ8NlZq3VENLhl0mii/9trZ7yH8ZQTAvkQh8zd7Fpxk=
+github.com/invopop/gobl.es.facturae v0.24.0 h1:TElHuXE5cArIP07waMdCq0RwPIwUhZRki4GlLGfYvDI=
+github.com/invopop/gobl.es.facturae v0.24.0/go.mod h1:mGcAULVBf7tuyl0SabUl+pInf3ewA0UYgOsDGtalIqw=
 github.com/invopop/gobl.fi.finvoice v0.0.6 h1:+H45L88fzfqFUX4pHFgcwHFbIVsIaTDrtmS/Ci+kczw=
 github.com/invopop/gobl.fi.finvoice v0.0.6/go.mod h1:zqLWHPlMDy/aDKslgmL4yq47RX55w54x7DS7VdZxaQM=
 github.com/invopop/gobl.fr.ctc v0.0.10 h1:n3FDbk0vp5NiK1mCZ1sa7Ojdh0o2Nl6FFd6uA+B8Fcc=

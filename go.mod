@@ -14,7 +14,7 @@ require (
 	github.com/invopop/gobl.co.dian v0.0.3
 	github.com/invopop/gobl.de.xinvoice v0.0.7
 	github.com/invopop/gobl.dk.oioubl v0.0.9
-	github.com/invopop/gobl.es.facturae v0.23.1-0.20261015115921-884a29792e3c
+	github.com/invopop/gobl.es.facturae v0.24.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
 	github.com/invopop/gobl.fr.ctc v0.0.10
 	github.com/invopop/gobl.it.sdi v0.86.0

@@ -115,3 +115,55 @@ func TestImport(t *testing.T) {
 		assert.ErrorIs(t, err, convert.ErrUnknownFormat)
 	})
 }
+
+func TestExportAttachments(t *testing.T) {
+	ctx := context.Background()
+	pdf := NewAttachment("invoice.pdf", "", []byte("%PDF-1.7"))
+
+	t.Run("embedded and imported again", func(t *testing.T) {
+		out, err := Export(ctx, &ExportOptions{
+			ParseOptions: &ParseOptions{Input: testFileReader(t, "testdata/convert-invoice.json")},
+			Formats:      []cbc.Key{"cii+en16931-v2017"},
+			Attachments:  []*convert.Attachment{pdf},
+		})
+		require.NoError(t, err)
+
+		res, err := Import(ctx, &ImportOptions{Input: bytes.NewReader(out.Data)})
+		require.NoError(t, err)
+		require.Len(t, res.Attachments, 1)
+		assert.Equal(t, "invoice.pdf", res.Attachments[0].Name)
+		assert.Equal(t, "application/pdf", res.Attachments[0].MIME)
+		assert.Equal(t, []byte("%PDF-1.7"), res.Attachments[0].Data)
+	})
+
+	t.Run("refused by formats that cannot embed them", func(t *testing.T) {
+		_, err := Export(ctx, &ExportOptions{
+			ParseOptions: &ParseOptions{Input: testFileReader(t, "testdata/convert-invoice.json")},
+			Formats:      []cbc.Key{"es-facturae-v3"},
+			Attachments:  []*convert.Attachment{pdf},
+		})
+		assert.ErrorIs(t, err, convert.ErrNotSupported)
+		assert.ErrorContains(t, err, "format es-facturae-v3 does not embed attachments")
+	})
+}
+
+func TestNewAttachment(t *testing.T) {
+	tests := []struct {
+		name, mime     string
+		wantName, want string
+	}{
+		{"invoice.pdf", "", "invoice.pdf", "application/pdf"},
+		{"dir/invoice.pdf", "", "invoice.pdf", "application/pdf"},
+		{`C:\files\invoice.pdf`, "", "invoice.pdf", "application/pdf"},
+		{"invoice.pdf", "application/octet-stream", "invoice.pdf", "application/pdf"},
+		{"data.bin", "text/csv; charset=utf-8", "data.bin", "text/csv"},
+		{"data.unknownext", "", "data.unknownext", "application/octet-stream"},
+		{"", "", "", "application/octet-stream"},
+	}
+	for _, tt := range tests {
+		a := NewAttachment(tt.name, tt.mime, []byte("x"))
+		assert.Equal(t, tt.wantName, a.Name, tt.name)
+		assert.Equal(t, tt.want, a.MIME, tt.name)
+		assert.Equal(t, []byte("x"), a.Data)
+	}
+}

@@ -219,7 +219,7 @@
       "post": {
         "operationId": "import",
         "summary": "Import a document",
-        "description": "Detects the format of a document in an external format, such as UBL or CII, and converts it into a GOBL envelope.",
+        "description": "Detects the format of a document in an external format, such as UBL or CII, and converts it into a GOBL envelope. Files embedded in the document are counted in the GOBL-Attachments header, and returned with the envelope when requested. The body is limited to 100 MB.",
         "tags": ["Convert"],
         "parameters": [
           {
@@ -228,6 +228,13 @@
             "description": "Format keys to limit detection to, comma-separated or repeated.",
             "schema": { "type": "string" },
             "example": "ubl+en16931-v2017"
+          },
+          {
+            "name": "attachments",
+            "in": "query",
+            "description": "When true, the response is an object with the format, the envelope and the files embedded in the document, instead of the envelope alone.",
+            "schema": { "type": "boolean" },
+            "example": true
           }
         ],
         "requestBody": {
@@ -240,20 +247,30 @@
         },
         "responses": {
           "200": {
-            "description": "Imported GOBL envelope",
+            "description": "Imported GOBL envelope, or with attachments=true, the import result",
             "headers": {
               "GOBL-Format": {
                 "description": "Key of the format the document was detected as.",
                 "schema": { "type": "string" }
+              },
+              "GOBL-Attachments": {
+                "description": "Number of files embedded in the document.",
+                "schema": { "type": "integer" }
               }
             },
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "oneOf": [
+                    { "description": "GOBL envelope" },
+                    { "$ref": "#/components/schemas/ImportResult" }
+                  ]
+                }
               }
             }
           },
           "400": { "$ref": "#/components/responses/Error" },
+          "413": { "$ref": "#/components/responses/Error" },
           "422": { "$ref": "#/components/responses/Error" }
         }
       }
@@ -262,7 +279,7 @@
       "post": {
         "operationId": "export",
         "summary": "Export a document",
-        "description": "Converts a GOBL document or envelope into the first of the requested formats that accepts it. Documents and unsigned envelopes are calculated and validated first.",
+        "description": "Converts a GOBL document or envelope into the first of the requested formats that accepts it. Documents and unsigned envelopes are calculated and validated first. A multipart body also provides files to embed, such as a PDF version of the invoice; formats that cannot embed them are skipped. The body is limited to 75 MB, so the exported document stays within 100 MB.",
         "tags": ["Convert"],
         "parameters": [
           {
@@ -279,6 +296,23 @@
           "content": {
             "application/json": {
               "schema": {}
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["document"],
+                "properties": {
+                  "document": {
+                    "type": "string",
+                    "description": "GOBL document or envelope, as a field or a file."
+                  },
+                  "attachment": {
+                    "type": "array",
+                    "description": "Files to embed in the exported document.",
+                    "items": { "type": "string", "format": "binary" }
+                  }
+                }
+              }
             }
           }
         },
@@ -298,6 +332,7 @@
             }
           },
           "400": { "$ref": "#/components/responses/Error" },
+          "413": { "$ref": "#/components/responses/Error" },
           "422": { "$ref": "#/components/responses/Error" }
         }
       }
@@ -722,6 +757,27 @@
           "attachments": {
             "type": "boolean",
             "description": "Whether exported documents can embed attachments."
+          }
+        }
+      },
+      "Attachment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Identifier of the file in the document." },
+          "name": { "type": "string", "example": "invoice.pdf" },
+          "description": { "type": "string" },
+          "mime": { "type": "string", "example": "application/pdf" },
+          "data": { "type": "string", "format": "byte", "description": "File contents, encoded in base64." }
+        }
+      },
+      "ImportResult": {
+        "type": "object",
+        "properties": {
+          "format": { "type": "string", "example": "ubl+en16931-v2017" },
+          "envelope": { "description": "Imported GOBL envelope." },
+          "attachments": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Attachment" }
           }
         }
       },

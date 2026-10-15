@@ -65,6 +65,10 @@ gobl correct -i ./invoice.json --credit
 gobl convert ./invoice.json ./invoice.xml --to ubl+en16931-v2017
 gobl convert -i ./invoice.xml
 
+# Embed a PDF version of the invoice, and save embedded files when importing
+gobl convert ./invoice.json ./invoice.xml --to ubl+peppol+bis-v3 --attach ./invoice.pdf
+gobl convert ./invoice.xml ./invoice.json --attachments ./files
+
 # List the available conversion formats
 gobl convert --list -i
 
@@ -127,8 +131,8 @@ the `/v0` prefix:
 | `POST` | `/v0/verify` | Verify an envelope's signatures |
 | `POST` | `/v0/correct` | Generate a corrective document (credit/debit note) |
 | `POST` | `/v0/replicate` | Clone a document with a new UUID |
-| `POST` | `/v0/import` | Detect the format of the raw body (e.g. UBL XML) and import it into a GOBL envelope; `?format=` limits detection |
-| `POST` | `/v0/export?format={key}` | Export a GOBL document or envelope into the first accepting format; the key used is returned in the `GOBL-Format` header |
+| `POST` | `/v0/import` | Detect the format of the raw body (e.g. UBL XML) and import it into a GOBL envelope; `?format=` limits detection, and `?attachments=true` also returns the embedded files (see [Attachments](#attachments)) |
+| `POST` | `/v0/export?format={key}` | Export a GOBL document or envelope into the first accepting format; the key used is returned in the `GOBL-Format` header. A `multipart/form-data` body also embeds files (see [Attachments](#attachments)) |
 | `POST` | `/v0/keygen` | Generate an ES256 key pair |
 | `GET` | `/v0/schemas` | List registered JSON schemas |
 | `GET` | `/v0/schemas/{path}` | Fetch a specific schema (add `?bundle` for bundled) |
@@ -182,6 +186,41 @@ format's converter decides whether it accepts a document, typically requiring
 the addons of its specification, and explains a refusal with rules faults.
 `POST /v0/formats` reports, for each format that exports a document's schema,
 whether it accepts the document and why not.
+
+### Attachments
+
+Formats with `attachments: true` in `/v0/formats`, such as UBL and most CII
+formats, can embed files in exported documents, such as a PDF version of the
+invoice. Formats that cannot embed them are skipped when attachments are given.
+
+- `gobl convert --to ... --attach file.pdf` embeds a file, and may be repeated.
+  The MIME type is taken from the file's extension.
+- `POST /v0/export` takes a `multipart/form-data` body with the GOBL JSON to
+  export, a document or an envelope, in a `data` field or file, and each file
+  to embed in an `attachment` file part:
+
+  ```bash
+  curl -F data=@invoice.json -F attachment=@invoice.pdf \
+    "https://gobl.dev/v0/export?format=ubl+peppol+bis-v3"
+  ```
+
+Imports provide the files embedded in UBL and CII documents separately from
+the envelope:
+
+- `gobl convert --attachments DIR` saves them to the directory, replacing
+  existing files. Only the base of each file name is used, and names repeated
+  in the document are numbered.
+- `POST /v0/import` returns the envelope alone, as before, with the number of
+  embedded files in the `GOBL-Attachments` header. With `?attachments=true`,
+  it returns `{"format", "envelope", "attachments"}` instead, each attachment
+  with its `id`, `name`, `description`, `mime` and base64 `data`.
+
+Request bodies are limited in line with Peppol, whose access points must
+accept messages of up to 100 MB including embedded files. `/v0/import`
+accepts up to 100 MB, and `/v0/export` up to 75 MB including attachments, as
+embedded files grow by a third when encoded in base64, so the exported
+document stays within 100 MB. Larger requests are refused with
+`413 Request Entity Too Large`. The CLI has no limits.
 
 ## Project structure
 

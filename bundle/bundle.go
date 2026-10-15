@@ -22,5 +22,10 @@ import (
 
 	// Converters
 	_ "github.com/invopop/gobl.cii"
+	_ "github.com/invopop/gobl.de.xinvoice"
+	_ "github.com/invopop/gobl.fr.ctc/cdar"
+	_ "github.com/invopop/gobl.fr.ctc/cii"
+	_ "github.com/invopop/gobl.fr.ctc/ubl"
+	_ "github.com/invopop/gobl.sa.zatca/ubl"
 	_ "github.com/invopop/gobl.ubl"
 )

@@ -8,17 +8,11 @@ import (
 	"github.com/invopop/gobl.dev/internal/ops"
 	"github.com/invopop/gobl/bill"
 	"github.com/invopop/gobl/cbc"
+	"github.com/invopop/gobl/convert"
 	"github.com/invopop/gobl/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// knownFormatGaps lists formats whose register metadata does not capture
-// every addon they need, so the editor may offer them for documents they then
-// reject, mapped to the reason. Keep this empty whenever possible.
-var knownFormatGaps = map[string]string{
-	"ubl+peppol+bis-v3": "also exports bill/status, so the invoice-only EN 16931 addon is checked in Accepts rather than listed in Addons",
-}
 
 func TestExamples(t *testing.T) {
 	list := examples()
@@ -29,30 +23,61 @@ func TestExamples(t *testing.T) {
 	}
 	assert.Contains(t, ids, defaultExample)
 
-	invoice := schema.Lookup(bill.Invoice{})
 	for _, ex := range list {
 		t.Run(ex.ID, func(t *testing.T) {
 			assert.NotEmpty(t, ex.Region)
 			assert.NotEmpty(t, ex.Label)
-			assert.NotEqual(t, ex.Region, ex.Region[:min(2, len(ex.Region))], "region name should come from the regime")
+			assert.Greater(t, len(ex.Region), 2, "region name should come from the regime")
 
 			_, err := ops.Build(context.Background(), &ops.BuildOptions{
 				ParseOptions: &ops.ParseOptions{Input: bytes.NewReader(ex.Doc)},
 			})
 			require.NoError(t, err)
 
-			// Every format the editor offers the example must accept it.
-			for _, f := range formatsFor(invoice, ex.Addons) {
-				if _, ok := knownFormatGaps[f.Key]; ok {
-					continue
-				}
+			// Every format that accepts the example converts it.
+			for _, key := range ex.Formats {
 				_, err := ops.Export(context.Background(), &ops.ExportOptions{
 					ParseOptions: &ops.ParseOptions{Input: bytes.NewReader(ex.Doc)},
-					Formats:      []cbc.Key{cbc.Key(f.Key)},
+					Formats:      []cbc.Key{cbc.Key(key)},
 				})
-				assert.NoError(t, err, "export to %s", f.Key)
+				assert.NoError(t, err, "export to %s", key)
 			}
 		})
+	}
+}
+
+// TestExamplesCoverFormats ensures every format that exports invoices is
+// accepted by at least one example, so all of them can be tried out in the
+// editor.
+func TestExamplesCoverFormats(t *testing.T) {
+	covered := make(map[string]bool)
+	for _, ex := range examples() {
+		for _, k := range ex.Formats {
+			covered[k] = true
+		}
+	}
+	invoice := schema.Lookup(bill.Invoice{})
+	for _, f := range convert.Formats() {
+		for _, s := range f.Export {
+			if s == invoice {
+				assert.True(t, covered[f.Key.String()], "no example is accepted by %s", f.Key)
+			}
+		}
+	}
+}
+
+func TestExampleFormatPreference(t *testing.T) {
+	preferred := map[string]string{
+		"de-xrechnung": "cii+de-xrechnung-v3",
+		"fr-facturx":   "cii+fr-facturx-v1",
+		"sa-zatca":     "ubl+sa-zatca-v1",
+		"de-en16931":   "cii+en16931-v2017",
+	}
+	for _, ex := range examples() {
+		if want, ok := preferred[ex.ID]; ok {
+			require.NotEmpty(t, ex.Formats, ex.ID)
+			assert.Equal(t, want, ex.Formats[0], ex.ID)
+		}
 	}
 }
 

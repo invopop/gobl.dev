@@ -16,6 +16,19 @@ func handleFormatList(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, map[string]any{"formats": ops.Formats()})
 }
 
+// handleFormatCheck reports, for each format that exports the schema of the
+// GOBL document in the body, whether it accepts the document.
+func handleFormatCheck(w http.ResponseWriter, r *http.Request) {
+	checks, err := ops.CheckFormats(r.Context(), &ops.ParseOptions{
+		Input: r.Body,
+	})
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
+	WriteJSON(w, map[string]any{"formats": checks})
+}
+
 func handleImport(w http.ResponseWriter, r *http.Request) {
 	env, err := ops.Import(r.Context(), &ops.ImportOptions{
 		Input:   r.Body,

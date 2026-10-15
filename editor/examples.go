@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/invopop/gobl/cbc"
+	"github.com/invopop/gobl/convert"
 	"github.com/invopop/gobl/i18n"
 	"github.com/invopop/gobl/l10n"
 	"github.com/invopop/gobl/tax"
@@ -17,22 +18,30 @@ import (
 //go:embed examples/*.json
 var examplesFS embed.FS
 
-// defaultExample is the ID of the example loaded when the editor opens.
-const defaultExample = "us"
+const (
+	// defaultExample is the ID of the example loaded when the editor opens.
+	defaultExample = "us"
+
+	// standardLabel names examples without addons.
+	standardLabel = "Standard"
+)
 
 // example is a bare-minimum GOBL document for a region, offered in the
-// editor's example picker. The region and label are derived from the
-// document itself, so adding an example only requires adding its file.
+// editor's example picker. The region, label, and the formats that accept
+// it are derived from the document itself, so adding an example only
+// requires adding its file. Formats that apply in the example's country come
+// first, so the most specific one is used by default.
 type example struct {
-	ID     string          `json:"id"`
-	Region string          `json:"region"`
-	Label  string          `json:"label"`
-	Addons []cbc.Key       `json:"addons,omitempty"`
-	Doc    json.RawMessage `json:"doc"`
+	ID      string          `json:"id"`
+	Region  string          `json:"region"`
+	Label   string          `json:"label"`
+	Formats []string        `json:"formats,omitempty"`
+	Doc     json.RawMessage `json:"doc"`
 }
 
-// examples are loaded on first use, as the names of the addons they use are
-// only available once the bundle has registered them.
+// examples are loaded on first use, as the addons they use and the formats
+// they are checked against are only available once the bundle has
+// registered them.
 var examples = sync.OnceValue(mustLoadExamples)
 
 func mustLoadExamples() []*example {
@@ -56,9 +65,9 @@ func mustLoadExamples() []*example {
 		if list[i].Region != list[j].Region {
 			return list[i].Region < list[j].Region
 		}
-		// Examples without addons come first in their region.
-		if len(list[i].Addons) != len(list[j].Addons) {
-			return len(list[i].Addons) < len(list[j].Addons)
+		// Standard examples, without addons, come first in their region.
+		if (list[i].Label == standardLabel) != (list[j].Label == standardLabel) {
+			return list[i].Label == standardLabel
 		}
 		return list[i].Label < list[j].Label
 	})
@@ -88,7 +97,7 @@ func newExample(id string, data []byte) (*example, error) {
 		region = r.Name.In(i18n.EN)
 	}
 
-	label := "Standard"
+	label := standardLabel
 	if len(doc.Addons) > 0 {
 		names := make([]string, len(doc.Addons))
 		for i, k := range doc.Addons {
@@ -100,11 +109,38 @@ func newExample(id string, data []byte) (*example, error) {
 		label = strings.Join(names, ", ")
 	}
 
+	formats, err := acceptedFormats(data)
+	if err != nil {
+		return nil, err
+	}
+	sort.SliceStable(formats, func(i, j int) bool {
+		return appliesIn(formats[i], country.Code()) && !appliesIn(formats[j], country.Code())
+	})
+
 	return &example{
-		ID:     id,
-		Region: region,
-		Label:  label,
-		Addons: doc.Addons,
-		Doc:    json.RawMessage(data),
+		ID:      id,
+		Region:  region,
+		Label:   label,
+		Formats: formats,
+		Doc:     json.RawMessage(data),
 	}, nil
+}
+
+// appliesIn reports whether the format with the key is restricted to
+// countries that include the country, directly or through a union such as
+// the EU.
+func appliesIn(key string, country l10n.Code) bool {
+	f := convert.FormatFor(cbc.Key(key))
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Countries {
+		if c == country {
+			return true
+		}
+		if u := l10n.Union(c); u != nil && u.HasMember(country) {
+			return true
+		}
+	}
+	return false
 }

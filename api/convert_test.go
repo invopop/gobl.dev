@@ -104,3 +104,45 @@ func TestImportEndpointUnknown(t *testing.T) {
 	defer resp.Body.Close() //nolint:errcheck
 	assert.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
 }
+
+func TestFormatCheckEndpoint(t *testing.T) {
+	srv := httptest.NewServer(api.NewHandler())
+	defer srv.Close()
+
+	doc, err := os.ReadFile("../internal/ops/testdata/convert-invoice.json")
+	require.NoError(t, err)
+
+	resp, err := http.Post(srv.URL+prefix+"/formats", "application/json", strings.NewReader(string(doc)))
+	require.NoError(t, err)
+	defer resp.Body.Close() //nolint:errcheck
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body struct {
+		Formats []struct {
+			Key      string `json:"key"`
+			Accepted bool   `json:"accepted"`
+			Error    *struct {
+				Key    string           `json:"key"`
+				Faults []map[string]any `json:"faults"`
+			} `json:"error"`
+		} `json:"formats"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	got := make(map[string]bool)
+	for _, f := range body.Formats {
+		got[f.Key] = f.Accepted
+		if f.Key == "ubl+de-xrechnung-v3" {
+			require.NotNil(t, f.Error)
+			assert.Equal(t, "not-supported", f.Error.Key)
+			assert.NotEmpty(t, f.Error.Faults, "refusals are given as faults")
+		}
+	}
+	assert.True(t, got["ubl+en16931-v2017"])
+	assert.False(t, got["ubl+de-xrechnung-v3"])
+	assert.NotContains(t, got, "cdar+fr-ctc-cdv-v1", "formats that do not export invoices are left out")
+
+	resp, err = http.Post(srv.URL+prefix+"/formats", "application/json", strings.NewReader(`{"$schema": "https://gobl.org/draft-0/bill/invoice"}`))
+	require.NoError(t, err)
+	defer resp.Body.Close() //nolint:errcheck
+	assert.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, "documents that do not build are rejected")
+}

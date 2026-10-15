@@ -4,42 +4,28 @@ import (
 	"testing"
 
 	_ "github.com/invopop/gobl.dev/bundle"
-	"github.com/invopop/gobl/bill"
-	"github.com/invopop/gobl/cbc"
-	"github.com/invopop/gobl/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestExportFormats(t *testing.T) {
-	keys := make(map[string]exportFormat)
-	for _, f := range exportFormats() {
-		keys[f.Key] = f
-	}
-	require.Contains(t, keys, "ubl+en16931-v2017")
-	assert.Equal(t, "UBL EN 16931:2017", keys["ubl+en16931-v2017"].Label)
-	assert.Equal(t, []cbc.Key{"eu-en16931-v2017"}, keys["ubl+en16931-v2017"].Addons)
-	assert.Contains(t, keys, "cii+en16931-v2017")
-	assert.NotContains(t, keys, "ubl", "import-only formats are not offered")
+func TestFormatLabels(t *testing.T) {
+	labels := formatLabels()
+	assert.Equal(t, "UBL EN 16931:2017", labels["ubl+en16931-v2017"])
+	assert.Equal(t, "CII XRechnung 3", labels["cii+de-xrechnung-v3"])
+	assert.NotContains(t, labels, "ubl", "import-only formats are not offered")
 }
 
-func TestAddonRequirements(t *testing.T) {
-	reqs := addonRequirements()
-	assert.Contains(t, reqs[cbc.Key("de-xrechnung-v3")], cbc.Key("eu-en16931-v2017"))
-	assert.NotContains(t, reqs, cbc.Key("eu-en16931-v2017"))
-}
+func TestAcceptedFormats(t *testing.T) {
+	keys, err := acceptedFormats([]byte(`{
+		"$schema": "https://gobl.org/draft-0/bill/invoice",
+		"currency": "USD",
+		"supplier": {"name": "Acme Inc.", "tax_id": {"country": "US"}},
+		"customer": {"name": "Sample Customer"},
+		"lines": [{"quantity": "1", "item": {"name": "Test", "price": "10.00"}}]
+	}`))
+	require.NoError(t, err)
+	assert.Empty(t, keys, "formats need addons the document lacks")
 
-func TestFormatsFor(t *testing.T) {
-	invoice := schema.Lookup(bill.Invoice{})
-	keys := func(list []exportFormat) []string {
-		out := make([]string, len(list))
-		for i, f := range list {
-			out[i] = f.Key
-		}
-		return out
-	}
-	assert.Contains(t, keys(formatsFor(invoice, []cbc.Key{"eu-en16931-v2017"})), "ubl+en16931-v2017")
-	assert.Contains(t, keys(formatsFor(invoice, []cbc.Key{"de-xrechnung-v3"})), "cii+en16931-v2017", "required addons are expanded")
-	assert.NotContains(t, keys(formatsFor(invoice, nil)), "ubl+en16931-v2017")
-	assert.Empty(t, formatsFor("https://gobl.org/draft-0/note/message", []cbc.Key{"eu-en16931-v2017"}))
+	_, err = acceptedFormats([]byte(`{"$schema": "https://gobl.org/draft-0/bill/invoice"}`))
+	assert.Error(t, err, "the document must build")
 }

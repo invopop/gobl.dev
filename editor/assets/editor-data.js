@@ -1,8 +1,6 @@
 // editor-data.js -- Alpine.js data components for the GOBL editor.
 // Loaded as a synchronous script (before Alpine.js which is deferred)
 // so the alpine:init listener is registered in time.
-const ENVELOPE_SCHEMA = "https://gobl.org/draft-0/envelope";
-const INVOICE_SCHEMA = "https://gobl.org/draft-0/bill/invoice";
 const MODES = ["build", "export", "import"];
 
 document.addEventListener("alpine:init", () => {
@@ -21,18 +19,17 @@ document.addEventListener("alpine:init", () => {
 
     examples: boot.examples || [],
     exampleID: "",
-    invoiceSchema: INVOICE_SCHEMA,
 
-    // Export formats registered with GOBL's convert package, and the addons
-    // each addon requires, used to work out which formats apply.
-    formats: boot.formats || [],
-    requires: boot.requires || {},
+    // Labels of the export formats registered with GOBL's convert package,
+    // by key, and those that accept the GOBL source, as checked by the
+    // server: only a format's converter can tell whether it accepts a
+    // document.
+    labels: boot.formats || {},
+    available: [],
+    checking: false,
+    checks: 0,
     format: stored("editor-format") || "",
     viewerTitle: "",
-
-    // Schema and addons of the GOBL source, updated as it is edited.
-    docSchema: "",
-    docAddons: [],
 
     cm: null,
 
@@ -43,7 +40,13 @@ document.addEventListener("alpine:init", () => {
           this.run();
         }
       });
-      window.addEventListener("gobl-source-change", () => this.inspectSource());
+      // In export mode, edits are checked and exported as they are made.
+      window.addEventListener("gobl-source-change", async () => {
+        if (this.mode !== "export") return;
+        await this.checkFormats();
+        if (this.format) await this.run();
+        else this.clearViewer();
+      });
       this.$watch("format", (v) => v && store("editor-format", v));
 
       this.cm = await window._cmReady;
@@ -57,48 +60,35 @@ document.addEventListener("alpine:init", () => {
       return { build: "Build", export: "Export", import: "Import" }[this.mode];
     },
 
-    // available lists the formats the GOBL source can be exported into.
-    get available() {
-      return this.formatsFor(this.docAddons, this.docSchema);
-    },
-
-    // formatsFor lists the export formats for documents of the schema that
-    // declare the addons. Addons are expanded with those they require, as
-    // GOBL does when building, and every addon a format lists must be
-    // present.
-    formatsFor(addons, schema) {
-      const all = this.expandAddons(addons || []);
-      return this.formats.filter(
-        (f) =>
-          f.export.includes(schema) &&
-          (f.addons || []).every((a) => all.includes(a)),
-      );
-    },
-
-    expandAddons(addons) {
-      const out = [...addons];
-      for (let i = 0; i < out.length; i++) {
-        for (const r of this.requires[out[i]] || []) {
-          if (!out.includes(r)) out.push(r);
-        }
-      }
-      return out;
-    },
-
-    // inspectSource reads the schema and addons of the GOBL source, and
-    // keeps the selected format among those available.
-    inspectSource() {
+    // checkFormats asks the server which formats accept the GOBL source,
+    // keeping the selected format among them. Documents that do not build
+    // have none, and the reason is shown as an error.
+    async checkFormats() {
+      const seq = ++this.checks;
+      this.checking = true;
       try {
-        let doc = JSON.parse(this.cm.source.state.doc.toString());
-        if (doc?.$schema === ENVELOPE_SCHEMA) doc = doc.doc;
-        this.docSchema = doc?.$schema || "";
-        this.docAddons = Array.isArray(doc?.$addons) ? doc.$addons : [];
-      } catch {
-        // Keep the previous values while the source is being edited.
-        return;
+        const res = await fetch("/v0/formats", {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: this.cm.source.state.doc.toString(),
+        });
+        const body = await res.json().catch(() => ({ message: "format check failed: " + res.status }));
+        // A newer check started while this one was running.
+        if (seq !== this.checks) return;
+        if (!res.ok) {
+          this.available = [];
+          this.error = body;
+        } else {
+          this.available = body.formats
+            .filter((f) => f.accepted)
+            .map((f) => ({ key: f.key, label: this.labels[f.key] || f.key }));
+          if (this.error && !this.loading) this.error = null;
+        }
+        const keys = this.available.map((f) => f.key);
+        if (!keys.includes(this.format)) this.format = keys[0] || "";
+      } finally {
+        if (seq === this.checks) this.checking = false;
       }
-      const keys = this.available.map((f) => f.key);
-      if (!keys.includes(this.format)) this.format = keys[0] || "";
     },
 
     setMode(mode) {
@@ -106,10 +96,9 @@ document.addEventListener("alpine:init", () => {
       this.mode = mode;
       store("editor-mode", mode);
       this.error = null;
-      this.cm?.setViewer("");
-      this.viewerTitle = "";
+      if (this.cm) this.clearViewer();
       if (mode === "export") {
-        this.run();
+        this.checkFormats().then(() => this.run());
       } else if (mode === "import") {
         if (this.cm?.input.state.doc.length) {
           this.run();
@@ -129,21 +118,25 @@ document.addEventListener("alpine:init", () => {
       this.error = null;
 
       if (this.mode === "import") {
-        const f = this.formatsFor(ex.addons, INVOICE_SCHEMA)[0];
-        if (!f) {
+        const key = ex.formats?.[0];
+        if (!key) {
           this.viewerTitle = "Paste a document to import, or choose an example with an export format";
           return;
         }
-        const out = await this.post("/v0/export?format=" + encodeURIComponent(f.key), ex.doc);
+        const out = await this.post("/v0/export?format=" + encodeURIComponent(key), ex.doc);
         if (!out) return;
         this.cm.setInput(out.text);
         await this.run();
         return;
       }
 
+      // Prefer the example's most specific format, listed first.
+      if (ex.formats?.length) this.format = ex.formats[0];
       this.cm.setSource(JSON.stringify(ex.doc, null, 2));
-      this.inspectSource();
-      if (this.mode === "export") await this.run();
+      if (this.mode === "export") {
+        await this.checkFormats();
+        await this.run();
+      }
     },
 
     async run() {
@@ -183,6 +176,11 @@ document.addEventListener("alpine:init", () => {
       this.success++;
     },
 
+    clearViewer() {
+      this.viewerTitle = "";
+      this.cm.setViewer("");
+    },
+
     // export leaves the GOBL source untouched: the server builds it and
     // converts the result.
     async export() {
@@ -192,12 +190,10 @@ document.addEventListener("alpine:init", () => {
         this.cm.source.state.doc.toString(),
       );
       if (!out) {
-        this.viewerTitle = "";
-        this.cm.setViewer("");
+        this.clearViewer();
         return;
       }
-      const f = this.formats.find((x) => x.key === out.format);
-      this.viewerTitle = f ? f.label : out.format;
+      this.viewerTitle = this.labels[out.format] || out.format;
       this.cm.setViewer(out.text, "xml");
       this.success++;
     },
@@ -205,8 +201,7 @@ document.addEventListener("alpine:init", () => {
     async import() {
       const out = await this.post("/v0/import", this.cm.input.state.doc.toString());
       if (!out) {
-        this.viewerTitle = "";
-        this.cm.setViewer("");
+        this.clearViewer();
         return;
       }
       this.viewerTitle = "GOBL envelope";

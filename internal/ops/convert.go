@@ -2,7 +2,10 @@ package ops
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"io"
+	"slices"
 
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/cbc"
@@ -49,6 +52,14 @@ func Import(ctx context.Context, opts *ImportOptions) (*gobl.Envelope, error) {
 	return env, nil
 }
 
+// FormatCheck reports whether a format accepts a document for export. When
+// it does not, Error gives the reason, usually as rules faults.
+type FormatCheck struct {
+	*convert.Format
+	Accepted bool        `json:"accepted"`
+	Error    *gobl.Error `json:"error,omitempty"`
+}
+
 // Export converts the GOBL document or envelope in the input into the first
 // of the requested formats that accepts it. Documents are wrapped in an
 // envelope, and unsigned envelopes are calculated, before conversion so that
@@ -57,8 +68,58 @@ func Export(ctx context.Context, opts *ExportOptions) (*convert.Output, error) {
 	if len(opts.Formats) == 0 {
 		return nil, gobl.ErrInput.WithReason("no output format provided")
 	}
+	env, err := exportEnvelope(ctx, opts.ParseOptions)
+	if err != nil {
+		return nil, err
+	}
+	out, err := convert.Export(env, opts.Formats...)
+	if err != nil {
+		return nil, gobl.ErrInternal.WithCause(err)
+	}
+	return out, nil
+}
 
-	popts := *opts.ParseOptions
+// CheckFormats reports, for every registered format that exports the
+// document's schema, whether it accepts the GOBL document or envelope in the
+// input, prepared as for Export.
+//
+// The convert register only asks a format's converter whether it accepts a
+// document during an export, so each format is checked by exporting a copy
+// of the envelope, as converters may adjust the document they convert.
+func CheckFormats(ctx context.Context, opts *ParseOptions) ([]*FormatCheck, error) {
+	env, err := exportEnvelope(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(env)
+	if err != nil {
+		return nil, gobl.ErrInternal.WithCause(err)
+	}
+
+	list := make([]*FormatCheck, 0)
+	for _, f := range convert.Formats() {
+		if !slices.Contains(f.Export, env.Document.Schema) {
+			continue
+		}
+		cp := new(gobl.Envelope)
+		if err := json.Unmarshal(data, cp); err != nil {
+			return nil, gobl.ErrInternal.WithCause(err)
+		}
+		c := &FormatCheck{Format: f, Accepted: true}
+		if _, err := convert.Export(cp, f.Key); err != nil {
+			// Formats that accept the document but fail to convert it are
+			// still offered, so the failure is shown when they are used.
+			c.Accepted = !errors.Is(err, convert.ErrNotSupported)
+			c.Error = gobl.ErrInternal.WithCause(err)
+		}
+		list = append(list, c)
+	}
+	return list, nil
+}
+
+// exportEnvelope parses the input into an envelope ready for export.
+func exportEnvelope(ctx context.Context, opts *ParseOptions) (*gobl.Envelope, error) {
+	popts := *opts
 	popts.Envelop = true
 	obj, err := parseGOBLData(ctx, &popts)
 	if err != nil {
@@ -78,10 +139,5 @@ func Export(ctx context.Context, opts *ExportOptions) (*convert.Output, error) {
 	if err := env.Validate(); err != nil {
 		return nil, gobl.ErrInternal.WithCause(err)
 	}
-
-	out, err := convert.Export(env, opts.Formats...)
-	if err != nil {
-		return nil, gobl.ErrInternal.WithCause(err)
-	}
-	return out, nil
+	return env, nil
 }

@@ -133,8 +133,8 @@ templ modeTabs() {
 }
 
 // examplePicker loads a bare-minimum document for a region. In import mode,
-// only examples with an export format are offered, as the output of the
-// first one.
+// only examples accepted by an export format are offered, as the output of
+// the first one.
 templ examplePicker() {
 	<select
 		aria-label="Example"
@@ -146,7 +146,7 @@ templ examplePicker() {
 		for _, ex := range examples() {
 			<option
 				value={ ex.ID }
-				if !ex.importable() {
+				if len(ex.Formats) == 0 {
 					:disabled="mode === 'import'"
 				}
 			>
@@ -157,7 +157,7 @@ templ examplePicker() {
 }
 
 // formatPicker selects the format to export into, from those registered with
-// GOBL's convert package that match the document's schema and addons.
+// GOBL's convert package that accept the document.
 templ formatPicker() {
 	<select
 		aria-label="Format"
@@ -169,7 +169,7 @@ templ formatPicker() {
 		class="h-8 bg-background border border-border rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
 	>
 		<template x-if="!available.length">
-			<option value="">No formats for this document's addons</option>
+			<option value="" x-text="checking ? 'Checking formats…' : 'No formats accept this document'"></option>
 		</template>
 		<template x-for="f in available" :key="f.key">
 			<option :value="f.key" :selected="f.key === format" x-text="f.label"></option>

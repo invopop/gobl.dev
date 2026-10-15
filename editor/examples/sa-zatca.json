@@ -1,0 +1,30 @@
+{
+	"$schema": "https://gobl.org/draft-0/bill/invoice",
+	"$addons": ["sa-zatca-v1"],
+	"series": "SAMPLE",
+	"code": "001",
+	"currency": "SAR",
+	"issue_date": "2026-01-15",
+	"supplier": {
+		"name": "Provide One LLC",
+		"tax_id": { "country": "SA", "code": "312345678912343" },
+		"identities": [{ "type": "CRN", "code": "1234567890" }],
+		"addresses": [{ "num": "1234", "street": "King Fahd Road", "street_extra": "Al Olaya", "locality": "Riyadh", "code": "12345", "country": "SA" }]
+	},
+	"customer": {
+		"name": "Sample Consumer LLC",
+		"identities": [{ "type": "TIN", "code": "123456789012345" }],
+		"addresses": [{ "num": "5678", "street": "Olaya Street", "street_extra": "Al Malaz", "locality": "Riyadh", "code": "54321", "country": "SA" }]
+	},
+	"lines": [
+		{
+			"quantity": "10",
+			"item": { "name": "Development services", "price": "100.00" },
+			"taxes": [{ "cat": "VAT", "rate": "general" }]
+		}
+	],
+	"payment": {
+		"terms": { "due_dates": [{ "date": "2026-02-15", "percent": "100%" }] }
+	},
+	"delivery": { "date": "2026-01-15" }
+}

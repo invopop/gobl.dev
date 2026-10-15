@@ -333,8 +333,8 @@ func modeTabs() templ.Component {
 }
 
 // examplePicker loads a bare-minimum document for a region. In import mode,
-// only examples with an export format are offered, as the output of the
-// first one.
+// only examples accepted by an export format are offered, as the output of
+// the first one.
 func examplePicker() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -378,7 +378,7 @@ func examplePicker() templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if !ex.importable() {
+			if len(ex.Formats) == 0 {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, " :disabled=\"mode === 'import'\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -424,7 +424,7 @@ func examplePicker() templ.Component {
 }
 
 // formatPicker selects the format to export into, from those registered with
-// GOBL's convert package that match the document's schema and addons.
+// GOBL's convert package that accept the document.
 func formatPicker() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -446,7 +446,7 @@ func formatPicker() templ.Component {
 			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<select aria-label=\"Format\" x-show=\"mode === 'export'\" x-cloak x-model=\"format\" @change=\"run()\" :disabled=\"!available.length\" class=\"h-8 bg-background border border-border rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary\"><template x-if=\"!available.length\"><option value=\"\">No formats for this document's addons</option></template><template x-for=\"f in available\" :key=\"f.key\"><option :value=\"f.key\" :selected=\"f.key === format\" x-text=\"f.label\"></option></template></select>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<select aria-label=\"Format\" x-show=\"mode === 'export'\" x-cloak x-model=\"format\" @change=\"run()\" :disabled=\"!available.length\" class=\"h-8 bg-background border border-border rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary\"><template x-if=\"!available.length\"><option value=\"\" x-text=\"checking ? 'Checking formats…' : 'No formats accept this document'\"></option></template><template x-for=\"f in available\" :key=\"f.key\"><option :value=\"f.key\" :selected=\"f.key === format\" x-text=\"f.label\"></option></template></select>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

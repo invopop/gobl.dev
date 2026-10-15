@@ -504,6 +504,40 @@
             }
           }
         }
+      },
+      "post": {
+        "operationId": "checkFormats",
+        "summary": "Check formats for a document",
+        "description": "Builds the GOBL document or envelope and reports, for each format that exports its schema, whether the format accepts it, with the reasons for refusals.",
+        "tags": ["Convert"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Format checks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "formats": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/FormatCheck" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/Error" }
+        }
       }
     }
   },
@@ -669,10 +703,6 @@
             "type": "array",
             "items": { "type": "string" }
           },
-          "addons": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
           "import": {
             "type": "array",
             "description": "GOBL schemas the format can be imported into.",
@@ -684,6 +714,24 @@
             "items": { "type": "string" }
           }
         }
+      },
+      "FormatCheck": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Format" },
+          {
+            "type": "object",
+            "properties": {
+              "accepted": {
+                "type": "boolean",
+                "description": "Whether the format accepts the document for export."
+              },
+              "error": {
+                "$ref": "#/components/schemas/Error",
+                "description": "Why the format refuses the document, usually as faults, or why accepting it still failed to convert."
+              }
+            }
+          }
+        ]
       },
       "I18nString": {
         "type": "object",

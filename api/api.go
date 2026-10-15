@@ -77,6 +77,7 @@ func NewHandler(opts ...Option) http.Handler {
 	mux.HandleFunc("POST "+p+"/verify", handleVerify)
 	mux.HandleFunc("POST "+p+"/import", handleImport)
 	mux.HandleFunc("POST "+p+"/export", handleExport)
+	mux.HandleFunc("POST "+p+"/formats", handleFormatCheck)
 
 	// Reference data (static per version — ETag for caching)
 	mux.HandleFunc("GET "+p+"/schemas", WithETag(handleSchemaList))

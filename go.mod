@@ -1,33 +1,34 @@
 module github.com/invopop/gobl.dev
 
-go 1.25.0
+go 1.26.1
 
 require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.508.0
+	github.com/invopop/gobl v0.508.1
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
-	github.com/invopop/gobl.cii v0.69.0
+	github.com/invopop/gobl.cii v0.70.0
 	github.com/invopop/gobl.co.dian v0.0.3
+	github.com/invopop/gobl.de.xinvoice v0.0.6
 	github.com/invopop/gobl.dk.oioubl v0.0.9
 	github.com/invopop/gobl.fi.finvoice v0.0.6
-	github.com/invopop/gobl.fr.ctc v0.0.8
-	github.com/invopop/gobl.it.sdi v0.83.0
+	github.com/invopop/gobl.fr.ctc v0.0.9
+	github.com/invopop/gobl.it.sdi v0.84.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.pl.ksef v0.47.0
-	github.com/invopop/gobl.pt.saft v0.0.8
-	github.com/invopop/gobl.sa.zatca v0.0.4
-	github.com/invopop/gobl.ubl v0.86.0
+	github.com/invopop/gobl.pt.saft v0.0.9
+	github.com/invopop/gobl.sa.zatca v0.0.5
+	github.com/invopop/gobl.ubl v0.87.0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1
 	github.com/magefile/mage v1.17.2
 	github.com/mark3labs/mcp-go v0.46.0
 	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.1
 	gitlab.com/flimzy/testy v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -64,10 +65,11 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
-	software.sslmate.com/src/go-pkcs12 v0.7.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
+	software.sslmate.com/src/go-pkcs12 v0.7.2 // indirect
 )

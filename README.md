@@ -90,9 +90,9 @@ The editor has three modes:
 - **Build** calculates and validates the GOBL document, replacing it with the
   result.
 - **Export** builds the document internally, leaving the source untouched, and
-  shows it converted into a registered format. Only the formats whose schema
-  and addons match the document are offered, including addons required by
-  those it declares.
+  shows it converted into a registered format. Only the formats that accept
+  the document are offered, as checked through `POST /v0/formats` while it is
+  edited.
 - **Import** converts a document in a registered format, such as UBL or CII,
   into a GOBL envelope.
 
@@ -135,6 +135,7 @@ the `/v0` prefix:
 | `GET` | `/v0/addons` | List available addons |
 | `GET` | `/v0/addons/{key}` | Fetch a specific addon definition |
 | `GET` | `/v0/formats` | List the conversion formats registered by the bundled converters |
+| `POST` | `/v0/formats` | Check which formats accept a GOBL document, with the reasons for refusals |
 | `POST` | `/v0/mcp` | Model Context Protocol (MCP) endpoint |
 | `GET` | `/v0/openapi.json` | OpenAPI specification |
 
@@ -161,19 +162,23 @@ Conversions between GOBL and external formats go through GOBL's
 [`convert`](https://github.com/invopop/gobl/tree/main/convert) register:
 converter modules register their formats when imported, and gobl.dev offers
 exactly the formats registered, through `gobl convert`, the `/v0/import`,
-`/v0/export` and `/v0/formats` endpoints, and the editor's export pane. The
-converters are blank-imported in [`bundle/bundle.go`](./bundle/bundle.go)
-alongside the addons:
+`/v0/export` and `/v0/formats` endpoints, and the editor. The converters are
+blank-imported in [`bundle/bundle.go`](./bundle/bundle.go) alongside the
+addons:
 
 | Module | Formats |
 |--------|---------|
 | [gobl.ubl](https://github.com/invopop/gobl.ubl) | `ubl+en16931-v2017`, `ubl+peppol+bis-v3` |
 | [gobl.cii](https://github.com/invopop/gobl.cii) | `cii+en16931-v2017`, `cii+peppol+bis-v3` |
+| [gobl.de.xinvoice](https://github.com/invopop/gobl.de.xinvoice) | `ubl+de-xrechnung-v3`, `cii+de-xrechnung-v3`, `cii+de-zugferd-v2` (`+basic`, `+extended`) |
+| [gobl.fr.ctc](https://github.com/invopop/gobl.fr.ctc) | `ubl+fr-ctc-cius-v1`, `ubl+fr-ctc-extended-v1`, `cii+fr-ctc-cius-v1`, `cii+fr-ctc-extended-v1`, `cii+fr-ctc-facturx-v1`, `cii+fr-facturx-v1` (`+basic`, `+extended`), `cii+fr-choruspro-v1`, `cdar+fr-ctc-cdv-v1` (`+ppf`) |
+| [gobl.sa.zatca](https://github.com/invopop/gobl.sa.zatca) | `ubl+sa-zatca-v1` |
 
-Format keys follow GOBL's naming rules (`<syntax>[+<layer>...]`). Exported
-documents must include the addons a format requires, such as
-`eu-en16931-v2017` for the EN 16931 formats. Regional formats appear as the
-modules implementing them register with the convert package.
+Format keys follow GOBL's naming rules (`<syntax>[+<layer>...]`). Each
+format's converter decides whether it accepts a document, typically requiring
+the addons of its specification, and explains a refusal with rules faults.
+`POST /v0/formats` reports, for each format that exports a document's schema,
+whether it accepts the document and why not.
 
 ## Project structure
 

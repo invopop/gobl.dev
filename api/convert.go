@@ -101,9 +101,9 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleExport converts the GOBL document in the body into the first of the
-// requested formats that accepts it. A multipart body provides the document
-// in its "document" part and files to embed in "attachment" parts.
+// handleExport converts the GOBL document or envelope in the body into the
+// first of the requested formats that accepts it. A multipart body provides
+// the GOBL JSON in its "data" part, and files to embed in "attachment" parts.
 func handleExport(w http.ResponseWriter, r *http.Request) {
 	body := limitBody(w, r, exportBodyLimit)
 	opts := &ops.ExportOptions{
@@ -174,19 +174,19 @@ func (b *limitedBody) writeError(w http.ResponseWriter, err error) {
 	_ = json.NewEncoder(w).Encode(ge) //nolint:errcheck
 }
 
-// readExportForm reads the document and the attachments of a multipart
-// export request. The document may be a field or a file.
+// readExportForm reads the GOBL JSON and the attachments of a multipart
+// export request. The JSON may be a field or a file.
 func readExportForm(form *multipart.Form, opts *ops.ExportOptions) error {
-	if v := form.Value["document"]; len(v) > 0 {
+	if v := form.Value["data"]; len(v) > 0 {
 		opts.Input = strings.NewReader(v[0])
-	} else if f := form.File["document"]; len(f) > 0 {
+	} else if f := form.File["data"]; len(f) > 0 {
 		data, err := readFormFile(f[0])
 		if err != nil {
 			return err
 		}
 		opts.Input = bytes.NewReader(data)
 	} else {
-		return gobl.ErrInput.WithReason("multipart body has no document part")
+		return gobl.ErrInput.WithReason("multipart body has no data part")
 	}
 	for _, fh := range form.File["attachment"] {
 		data, err := readFormFile(fh)

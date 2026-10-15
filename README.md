@@ -195,12 +195,12 @@ invoice. Formats that cannot embed them are skipped when attachments are given.
 
 - `gobl convert --to ... --attach file.pdf` embeds a file, and may be repeated.
   The MIME type is taken from the file's extension.
-- `POST /v0/export` takes a `multipart/form-data` body with the GOBL document
-  in a `document` field or file, and each file to embed in an `attachment`
-  file part:
+- `POST /v0/export` takes a `multipart/form-data` body with the GOBL JSON to
+  export, a document or an envelope, in a `data` field or file, and each file
+  to embed in an `attachment` file part:
 
   ```bash
-  curl -F document=@invoice.json -F attachment=@invoice.pdf \
+  curl -F data=@invoice.json -F attachment=@invoice.pdf \
     "https://gobl.dev/v0/export?format=ubl+peppol+bis-v3"
   ```
 

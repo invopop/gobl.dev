@@ -300,11 +300,11 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["document"],
+                "required": ["data"],
                 "properties": {
-                  "document": {
+                  "data": {
                     "type": "string",
-                    "description": "GOBL document or envelope, as a field or a file."
+                    "description": "GOBL JSON to export, a document or an envelope, as a text field or a file."
                   },
                   "attachment": {
                     "type": "array",

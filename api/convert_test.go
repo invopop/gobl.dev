@@ -157,12 +157,12 @@ func multipartExport(t *testing.T, doc []byte, asFile bool, files map[string][]b
 	body := new(bytes.Buffer)
 	mw := multipart.NewWriter(body)
 	if asFile {
-		fw, err := mw.CreateFormFile("document", "invoice.json")
+		fw, err := mw.CreateFormFile("data", "invoice.json")
 		require.NoError(t, err)
 		_, err = fw.Write(doc)
 		require.NoError(t, err)
 	} else if doc != nil {
-		require.NoError(t, mw.WriteField("document", string(doc)))
+		require.NoError(t, mw.WriteField("data", string(doc)))
 	}
 	for name, data := range files {
 		fw, err := mw.CreateFormFile("attachment", name)
@@ -269,7 +269,7 @@ func TestExportMultipartErrors(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		data, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
-		assert.Contains(t, string(data), "no document part")
+		assert.Contains(t, string(data), "no data part")
 	})
 	t.Run("malformed", func(t *testing.T) {
 		resp, err := http.Post(srv.URL+prefix+"/export?format=ubl+en16931-v2017", "multipart/form-data; boundary=x", strings.NewReader("garbage"))

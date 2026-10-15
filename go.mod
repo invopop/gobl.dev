@@ -6,23 +6,23 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.508.2-0.20261015114730-23e167f58d6c
+	github.com/invopop/gobl v0.508.2-0.20261015140231-e2e40a6ec4b7
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
 	github.com/invopop/gobl.cii v0.73.0
 	github.com/invopop/gobl.co.dian v0.0.3
-	github.com/invopop/gobl.de.xinvoice v0.0.7
+	github.com/invopop/gobl.de.xinvoice v0.0.8-0.20261015140618-c31479ac841a
 	github.com/invopop/gobl.dk.oioubl v0.0.9
 	github.com/invopop/gobl.es.facturae v0.24.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
-	github.com/invopop/gobl.fr.ctc v0.0.10
+	github.com/invopop/gobl.fr.ctc v0.0.11-0.20261015140501-1676f13b2699
 	github.com/invopop/gobl.it.sdi v0.86.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.pl.ksef v0.47.0
 	github.com/invopop/gobl.pt.saft v0.0.9
 	github.com/invopop/gobl.sa.zatca v0.0.6
-	github.com/invopop/gobl.ubl v0.90.0
+	github.com/invopop/gobl.ubl v0.90.1-0.20261015140346-da7aadf442d5
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1

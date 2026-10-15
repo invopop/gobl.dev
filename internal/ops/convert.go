@@ -5,7 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"mime"
+	"path"
+	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/cbc"
@@ -27,6 +31,31 @@ type ExportOptions struct {
 	// Formats lists the keys of the formats to export into, in order of
 	// preference. The first one that accepts the document is used.
 	Formats []cbc.Key
+	// Attachments are files to embed in the exported document. Formats that
+	// cannot embed them are skipped.
+	Attachments []*convert.Attachment
+}
+
+// NewAttachment prepares a file to embed in an exported document. The MIME
+// type is taken from the name's extension when not given, and directories
+// are removed from the name.
+func NewAttachment(name, mimeType string, data []byte) *convert.Attachment {
+	name = path.Base(strings.ReplaceAll(name, `\`, "/"))
+	if name == "." || name == "/" {
+		name = ""
+	}
+	if mimeType == "" || mimeType == "application/octet-stream" {
+		if t := mime.TypeByExtension(filepath.Ext(name)); t != "" {
+			mimeType = t
+		}
+	}
+	if t, _, err := mime.ParseMediaType(mimeType); err == nil {
+		mimeType = t
+	}
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+	return &convert.Attachment{Name: name, MIME: mimeType, Data: data}
 }
 
 // Formats lists every format registered with GOBL's convert package by the
@@ -73,7 +102,10 @@ func Export(ctx context.Context, opts *ExportOptions) (*convert.ExportResult, er
 	if err != nil {
 		return nil, err
 	}
-	out, err := convert.Export(env, opts.Formats[0], convert.WithAlternatives(opts.Formats[1:]...))
+	out, err := convert.Export(env, opts.Formats[0],
+		convert.WithAlternatives(opts.Formats[1:]...),
+		convert.WithAttachments(opts.Attachments...),
+	)
 	if err != nil {
 		return nil, gobl.ErrInternal.WithCause(err)
 	}

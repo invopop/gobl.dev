@@ -3,10 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/invopop/gobl"
 	"github.com/invopop/gobl/bill"
+	gconvert "github.com/invopop/gobl/convert"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -72,4 +75,59 @@ func Test_convert(t *testing.T) {
 		_, err := runConvert(t, nil, "--to", "a", "--from", "b")
 		assert.EqualError(t, err, "--to and --from cannot be used together")
 	})
+
+	t.Run("attachments", func(t *testing.T) {
+		dir := t.TempDir()
+		pdf := filepath.Join(dir, "invoice.pdf")
+		require.NoError(t, os.WriteFile(pdf, []byte("%PDF-1.7"), 0o644))
+
+		xml, err := runConvert(t, nil, "testdata/convert-invoice.json", "--to", "ubl+en16931-v2017", "--attach", pdf)
+		require.NoError(t, err)
+		assert.Contains(t, string(xml), `mimeCode="application/pdf"`)
+		assert.Contains(t, string(xml), `filename="invoice.pdf"`)
+
+		out := filepath.Join(dir, "out")
+		_, err = runConvert(t, xml, "--attachments", out)
+		require.NoError(t, err)
+		data, err := os.ReadFile(filepath.Join(out, "invoice.pdf"))
+		require.NoError(t, err)
+		assert.Equal(t, []byte("%PDF-1.7"), data)
+	})
+
+	t.Run("attachment not found", func(t *testing.T) {
+		_, err := runConvert(t, nil, "testdata/convert-invoice.json", "--to", "ubl+en16931-v2017", "--attach", "missing.pdf")
+		assert.ErrorContains(t, err, "missing.pdf")
+	})
+
+	t.Run("attach without to", func(t *testing.T) {
+		_, err := runConvert(t, nil, "--attach", "invoice.pdf")
+		assert.EqualError(t, err, "--attach requires --to")
+	})
+
+	t.Run("attachments with to", func(t *testing.T) {
+		_, err := runConvert(t, nil, "--to", "a", "--attachments", "files")
+		assert.EqualError(t, err, "--attachments cannot be used with --to")
+	})
+}
+
+func Test_saveAttachments(t *testing.T) {
+	dir := t.TempDir()
+	atts := []*gconvert.Attachment{
+		{Name: "../../escape.pdf", Data: []byte("1")},
+		{Name: `C:\files\escape.pdf`, Data: []byte("2")},
+		{ID: "doc-3", Data: []byte("3")},
+		{Name: "..", Data: []byte("4")},
+	}
+	require.NoError(t, saveAttachments(dir, atts))
+
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	names := make([]string, len(entries))
+	for i, e := range entries {
+		names[i] = e.Name()
+	}
+	assert.ElementsMatch(t, []string{"escape.pdf", "escape-2.pdf", "doc-3", "attachment-4"}, names)
+	data, err := os.ReadFile(filepath.Join(dir, "escape-2.pdf"))
+	require.NoError(t, err)
+	assert.Equal(t, []byte("2"), data)
 }

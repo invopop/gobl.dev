@@ -6,22 +6,24 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.508.1
+	github.com/invopop/gobl v0.509.0
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
 	github.com/invopop/gobl.cii v0.73.0
 	github.com/invopop/gobl.co.dian v0.0.3
-	github.com/invopop/gobl.de.xinvoice v0.0.7
+	github.com/invopop/gobl.de.xinvoice v0.0.8
 	github.com/invopop/gobl.dk.oioubl v0.0.9
+	github.com/invopop/gobl.es.facturae v0.24.0
+	github.com/invopop/gobl.es.verifactu v0.41.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
-	github.com/invopop/gobl.fr.ctc v0.0.10
+	github.com/invopop/gobl.fr.ctc v0.0.11
 	github.com/invopop/gobl.it.sdi v0.86.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.pl.ksef v0.47.0
 	github.com/invopop/gobl.pt.saft v0.0.9
 	github.com/invopop/gobl.sa.zatca v0.0.6
-	github.com/invopop/gobl.ubl v0.90.0
+	github.com/invopop/gobl.ubl v0.91.0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1
@@ -34,8 +36,8 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.121.3 // indirect
-	github.com/Masterminds/semver/v3 v3.3.1 // indirect
+	cloud.google.com/go v0.123.0 // indirect
+	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/Oudwins/tailwind-merge-go v0.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect

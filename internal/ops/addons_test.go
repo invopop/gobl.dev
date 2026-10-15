@@ -82,6 +82,6 @@ func TestAddonKeys(t *testing.T) {
 	require.NotEmpty(t, keys)
 
 	assert.Len(t, keys, len(tax.AllAddonDefs()))
-	assert.Contains(t, keys, "es-verifactu-v1", "core addon missing")
+	assert.Contains(t, keys, "es-tbai-v1", "core addon missing")
 	assert.Contains(t, keys, "mx-cfdi-v4", "externally-implemented addon missing")
 }

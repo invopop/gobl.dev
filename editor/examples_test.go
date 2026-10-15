@@ -100,9 +100,10 @@ func TestExampleSamples(t *testing.T) {
 		})
 	}
 	samples := map[string]string{
-		"de-zugferd": "cii+de-zugferd-v2+basic",
-		"fr-facturx": "cii+fr-facturx-v1+basic",
-		"sa-zatca":   "ubl+sa-zatca-v1",
+		"de-zugferd":  "cii+de-zugferd-v2+basic",
+		"es-facturae": "es-facturae-v3",
+		"fr-facturx":  "cii+fr-facturx-v1+basic",
+		"sa-zatca":    "ubl+sa-zatca-v1",
 	}
 	for _, ex := range examples() {
 		if want, ok := samples[ex.ID]; ok {

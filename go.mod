@@ -6,7 +6,7 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.508.1
+	github.com/invopop/gobl v0.508.2-0.20261015114730-23e167f58d6c
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
@@ -14,7 +14,7 @@ require (
 	github.com/invopop/gobl.co.dian v0.0.3
 	github.com/invopop/gobl.de.xinvoice v0.0.7
 	github.com/invopop/gobl.dk.oioubl v0.0.9
-	github.com/invopop/gobl.es.facturae v0.23.1-0.20261015113529-c54d53fc5dfc
+	github.com/invopop/gobl.es.facturae v0.23.1-0.20261015115921-884a29792e3c
 	github.com/invopop/gobl.fi.finvoice v0.0.6
 	github.com/invopop/gobl.fr.ctc v0.0.10
 	github.com/invopop/gobl.it.sdi v0.86.0
@@ -55,7 +55,6 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/labstack/echo/v4 v4.15.3 // indirect
 	github.com/labstack/gommon v0.5.0 // indirect
-	github.com/lestrrat-go/libxml2 v0.0.0-20240905100032-c934e3fcb9d3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect

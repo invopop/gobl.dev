@@ -1,0 +1,43 @@
+{
+	"$schema": "https://gobl.org/draft-0/bill/invoice",
+	"$addons": ["es-facturae-v3"],
+	"series": "SAMPLE",
+	"code": "001",
+	"currency": "EUR",
+	"issue_date": "2026-01-15",
+	"supplier": {
+		"name": "Provide One S.L.",
+		"tax_id": { "country": "ES", "code": "B98602642" },
+		"addresses": [
+			{
+				"street": "Calle Pradillo",
+				"num": "42",
+				"locality": "Madrid",
+				"region": "Madrid",
+				"code": "28002",
+				"country": "ES"
+			}
+		]
+	},
+	"customer": {
+		"name": "Sample Consumer S.L.",
+		"tax_id": { "country": "ES", "code": "B63272603" },
+		"addresses": [
+			{
+				"street": "Calle Mayor",
+				"num": "1",
+				"locality": "Barcelona",
+				"region": "Barcelona",
+				"code": "08002",
+				"country": "ES"
+			}
+		]
+	},
+	"lines": [
+		{
+			"quantity": "10",
+			"item": { "name": "Development services", "price": "100.00" },
+			"taxes": [{ "cat": "VAT", "rate": "general" }]
+		}
+	]
+}

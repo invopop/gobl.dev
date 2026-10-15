@@ -14,6 +14,7 @@ require (
 	github.com/invopop/gobl.co.dian v0.0.3
 	github.com/invopop/gobl.de.xinvoice v0.0.7
 	github.com/invopop/gobl.dk.oioubl v0.0.9
+	github.com/invopop/gobl.es.facturae v0.23.1-0.20261015113529-c54d53fc5dfc
 	github.com/invopop/gobl.fi.finvoice v0.0.6
 	github.com/invopop/gobl.fr.ctc v0.0.10
 	github.com/invopop/gobl.it.sdi v0.86.0
@@ -34,8 +35,8 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.121.3 // indirect
-	github.com/Masterminds/semver/v3 v3.3.1 // indirect
+	cloud.google.com/go v0.123.0 // indirect
+	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/Oudwins/tailwind-merge-go v0.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
@@ -54,6 +55,7 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/labstack/echo/v4 v4.15.3 // indirect
 	github.com/labstack/gommon v0.5.0 // indirect
+	github.com/lestrrat-go/libxml2 v0.0.0-20240905100032-c934e3fcb9d3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect

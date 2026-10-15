@@ -1,8 +1,8 @@
 // editor.js -- ES module for GOBL Editor
 // Initializes the CodeMirror editors: the GOBL source with JSON schema
-// support, the input for documents to import, and a read-only viewer for
-// export and import results. Once mounted, the editors are handed to the
-// Alpine component through window._cmReady (created in <head>).
+// support, and the editor for documents in other formats, which exports are
+// written to and imports are read from. Once mounted, the editors are handed
+// to the Alpine component through window._cmReady (created in <head>).
 
 import { basicSetup, EditorView } from "codemirror";
 import { EditorState, Compartment } from "@codemirror/state";
@@ -15,7 +15,6 @@ function isDark() {
 
 const { jsonSchema, updateSchema } = await import("codemirror-json-schema");
 const { xml } = await import("@codemirror/lang-xml");
-const { json } = await import("@codemirror/lang-json");
 
 const SCHEMA_PREFIX = "https://gobl.org/draft-0/";
 let activeSchemaURL = null;
@@ -83,12 +82,6 @@ const source = createEditor(sourceParent, [
 
 const input = createEditor(document.getElementById("source-xml"), [xml()]);
 
-const viewerLanguage = new Compartment();
-const viewer = createEditor(document.getElementById("viewer"), [
-  EditorState.readOnly.of(true),
-  viewerLanguage.of(xml()),
-]);
-
 window._cmReadyResolve({
   source,
   input,
@@ -98,14 +91,6 @@ window._cmReadyResolve({
   },
   setInput(text) {
     setText(input, text);
-  },
-  // setViewer shows the text in the read-only viewer, highlighted as "xml"
-  // or "json".
-  setViewer(text, lang) {
-    viewer.dispatch({
-      changes: { from: 0, to: viewer.state.doc.length, insert: text },
-      effects: viewerLanguage.reconfigure(lang === "json" ? json() : xml()),
-    });
   },
   setDark(dark) {
     const theme = dark ? vsCodeDark : vsCodeLight;

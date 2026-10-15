@@ -241,6 +241,12 @@
         "responses": {
           "200": {
             "description": "Imported GOBL envelope",
+            "headers": {
+              "GOBL-Format": {
+                "description": "Key of the format the document was detected as.",
+                "schema": { "type": "string" }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {}

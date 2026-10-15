@@ -1,24 +1,27 @@
 // editor-data.js -- Alpine.js data components for the GOBL editor.
 // Loaded as a synchronous script (before Alpine.js which is deferred)
 // so the alpine:init listener is registered in time.
-const MODES = ["build", "export", "import"];
+const MODES = ["build", "convert"];
 
 document.addEventListener("alpine:init", () => {
   const boot = readBootstrap();
 
   Alpine.data("editor", () => ({
-    // "build" replaces the GOBL source with the built document, "export"
-    // builds it internally and shows it converted into a format, and
-    // "import" converts the input into GOBL.
-    mode: MODES.includes(stored("editor-mode")) ? stored("editor-mode") : "build",
+    // "build" replaces the GOBL source with the built document. "convert"
+    // shows the GOBL source beside a document in another format: exporting
+    // writes the GOBL source into that format, and importing reads the other
+    // document back into GOBL.
+    mode: initialMode(),
     loading: false,
     envelop: false,
     error: null,
-    // Counter so each successful run creates a fresh FlashMessage.
-    success: 0,
+    // The pane the last successful action updated, with a counter so each
+    // one creates a fresh FlashMessage.
+    done: { pane: "", n: 0 },
 
     examples: boot.examples || [],
     exampleID: "",
+    sampleID: "",
 
     // Labels of the export formats registered with GOBL's convert package,
     // by key, and those that accept the GOBL source, as checked by the
@@ -29,7 +32,8 @@ document.addEventListener("alpine:init", () => {
     checking: false,
     checks: 0,
     format: stored("editor-format") || "",
-    viewerTitle: "",
+    // Name of the format of the other document, once known.
+    inputTitle: "",
 
     cm: null,
 
@@ -37,27 +41,49 @@ document.addEventListener("alpine:init", () => {
       window.addEventListener("keydown", (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
           e.preventDefault();
-          this.run();
+          this.run(this.defaultAction());
         }
       });
-      // In export mode, edits are checked and exported as they are made.
-      window.addEventListener("gobl-source-change", async () => {
-        if (this.mode !== "export") return;
-        await this.checkFormats();
-        if (this.format) await this.run();
-        else this.clearViewer();
+      window.addEventListener("gobl-source-change", () => {
+        if (this.mode === "convert") this.checkFormats();
       });
       this.$watch("format", (v) => v && store("editor-format", v));
 
       this.cm = await window._cmReady;
-      const id = this.examples.some((e) => e.id === stored("editor-example"))
-        ? stored("editor-example")
-        : boot.defaultExample;
-      await this.loadExample(id);
+      await this.loadExample(this.findExample(stored("editor-example"))?.id || boot.defaultExample);
+      if (this.mode === "convert") await this.enterConvert();
     },
 
-    get actionLabel() {
-      return { build: "Build", export: "Export", import: "Import" }[this.mode];
+    findExample(id) {
+      return this.examples.find((e) => e.id === id);
+    },
+
+    // defaultAction is run with ⌘/Ctrl+Enter: building, or in convert mode,
+    // the action that reads from the focused editor.
+    defaultAction() {
+      if (this.mode === "build") return "build";
+      return this.cm?.input.hasFocus ? "import" : "export";
+    },
+
+    setMode(mode) {
+      if (mode === this.mode) return;
+      this.mode = mode;
+      store("editor-mode", mode);
+      this.error = null;
+      if (mode === "convert") this.enterConvert();
+    },
+
+    // enterConvert checks the formats for the GOBL source, and fills the
+    // other editor with a sample when it is empty.
+    async enterConvert() {
+      await this.checkFormats();
+      if (this.cm.input.state.doc.length) return;
+      const current = this.findExample(this.exampleID);
+      const ex =
+        this.findExample(stored("editor-sample")) ||
+        (current?.formats?.length ? current : null) ||
+        this.examples.find((e) => e.formats?.length);
+      if (ex) await this.loadSample(ex.id);
     },
 
     // checkFormats asks the server which formats accept the GOBL source,
@@ -91,66 +117,49 @@ document.addEventListener("alpine:init", () => {
       }
     },
 
-    setMode(mode) {
-      if (mode === this.mode) return;
-      this.mode = mode;
-      store("editor-mode", mode);
-      this.error = null;
-      if (this.cm) this.clearViewer();
-      if (mode === "export") {
-        this.checkFormats().then(() => this.run());
-      } else if (mode === "import") {
-        if (this.cm?.input.state.doc.length) {
-          this.run();
-        } else {
-          this.loadExample(this.exampleID);
-        }
-      }
-    },
-
-    // loadExample replaces the GOBL source with the example, or in import
-    // mode, the input with the example exported into its first format.
+    // loadExample replaces the GOBL source with the example, selecting its
+    // most specific format, listed first.
     async loadExample(id) {
-      const ex = this.examples.find((e) => e.id === id);
+      const ex = this.findExample(id);
       if (!ex || !this.cm) return;
       this.exampleID = id;
       store("editor-example", id);
       this.error = null;
-
-      if (this.mode === "import") {
-        const key = ex.formats?.[0];
-        if (!key) {
-          this.viewerTitle = "Paste a document to import, or choose an example with an export format";
-          return;
-        }
-        const out = await this.post("/v0/export?format=" + encodeURIComponent(key), ex.doc);
-        if (!out) return;
-        this.cm.setInput(out.text);
-        await this.run();
-        return;
-      }
-
-      // Prefer the example's most specific format, listed first.
       if (ex.formats?.length) this.format = ex.formats[0];
       this.cm.setSource(JSON.stringify(ex.doc, null, 2));
-      if (this.mode === "export") {
-        await this.checkFormats();
-        await this.run();
-      }
+      if (this.mode === "convert") await this.checkFormats();
     },
 
-    async run() {
+    // loadSample replaces the other document with the example exported into
+    // its most specific format.
+    async loadSample(id) {
+      const ex = this.findExample(id);
+      const key = ex?.formats?.[0];
+      if (!key || !this.cm) return;
+      this.sampleID = id;
+      store("editor-sample", id);
+      this.error = null;
+      const out = await this.post("/v0/export?format=" + encodeURIComponent(key), ex.doc);
+      if (!out) return;
+      this.cm.setInput(out.text);
+      this.inputTitle = this.labels[out.format] || out.format;
+    },
+
+    async run(action) {
       if (!this.cm || this.loading) return;
       this.loading = true;
       this.error = null;
-      this.success = 0;
       try {
-        await this[this.mode]();
+        await this[action]();
       } catch (e) {
         this.error = { message: e.message };
       } finally {
         this.loading = false;
       }
+    },
+
+    flash(pane) {
+      this.done = { pane, n: this.done.n + 1 };
     },
 
     async build() {
@@ -173,40 +182,38 @@ document.addEventListener("alpine:init", () => {
         ed.scrollDOM.scrollTop = scrollTop;
       });
       ed.focus();
-      this.success++;
+      this.flash("source");
     },
 
-    clearViewer() {
-      this.viewerTitle = "";
-      this.cm.setViewer("");
-    },
-
-    // export leaves the GOBL source untouched: the server builds it and
-    // converts the result.
+    // export writes the GOBL source, built by the server and left untouched
+    // here, into the selected format in the other editor.
     async export() {
       if (!this.format) return;
       const out = await this.post(
         "/v0/export?format=" + encodeURIComponent(this.format),
         this.cm.source.state.doc.toString(),
       );
-      if (!out) {
-        this.clearViewer();
-        return;
-      }
-      this.viewerTitle = this.labels[out.format] || out.format;
-      this.cm.setViewer(out.text, "xml");
-      this.success++;
+      if (!out) return;
+      this.cm.setInput(out.text);
+      // The other editor no longer holds a sample.
+      this.sampleID = "";
+      this.inputTitle = this.labels[out.format] || out.format;
+      this.flash("input");
     },
 
+    // import reads the other document, detecting its format, into the GOBL
+    // source.
     async import() {
       const out = await this.post("/v0/import", this.cm.input.state.doc.toString());
-      if (!out) {
-        this.clearViewer();
-        return;
-      }
-      this.viewerTitle = "GOBL envelope";
-      this.cm.setViewer(JSON.stringify(JSON.parse(out.text), null, 2), "json");
-      this.success++;
+      if (!out) return;
+      this.inputTitle = this.labels[out.format] || out.format || "";
+      // Export back into the detected format by default.
+      if (out.format) this.format = out.format;
+      this.cm.setSource(JSON.stringify(JSON.parse(out.text), null, 2));
+      // The GOBL source no longer holds an example.
+      this.exampleID = "";
+      this.flash("source");
+      await this.checkFormats();
     },
 
     // post sends the body (JSON encoded unless already a string) and returns
@@ -250,6 +257,14 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 });
+
+// initialMode restores the last mode, mapping the former export and import
+// modes onto convert.
+function initialMode() {
+  const m = stored("editor-mode");
+  if (m === "export" || m === "import") return "convert";
+  return MODES.includes(m) ? m : "build";
+}
 
 function readBootstrap() {
   const el = document.getElementById("editor-bootstrap");

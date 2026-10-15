@@ -65,7 +65,7 @@ func (o *convertOpts) runE(cmd *cobra.Command, args []string) error {
 	defer input.Close() // nolint:errcheck
 
 	if len(o.to) == 0 {
-		env, err := ops.Import(ctx, &ops.ImportOptions{
+		env, _, err := ops.Import(ctx, &ops.ImportOptions{
 			Input:   input,
 			Formats: formatKeys(o.from),
 		})

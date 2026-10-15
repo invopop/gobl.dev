@@ -36,20 +36,25 @@ func Formats() []*convert.Format {
 }
 
 // Import detects the format of the input and converts it into a GOBL
-// envelope using the registered converters.
-func Import(ctx context.Context, opts *ImportOptions) (*gobl.Envelope, error) {
+// envelope using the registered converters, also returning the format
+// detected.
+func Import(ctx context.Context, opts *ImportOptions) (*gobl.Envelope, *convert.Format, error) {
 	data, err := io.ReadAll(cancelableReader(ctx, opts.Input))
 	if err != nil {
-		return nil, gobl.ErrInput.WithCause(err)
+		return nil, nil, gobl.ErrInput.WithCause(err)
 	}
 	if len(data) == 0 {
-		return nil, gobl.ErrInput.WithReason("no input data")
+		return nil, nil, gobl.ErrInput.WithReason("no input data")
 	}
-	env, err := convert.Import(data, opts.Formats...)
+	f, err := convert.Detect(data, opts.Formats...)
 	if err != nil {
-		return nil, gobl.ErrInternal.WithCause(err)
+		return nil, nil, gobl.ErrInternal.WithCause(err)
 	}
-	return env, nil
+	env, err := convert.Import(data, f.Key)
+	if err != nil {
+		return nil, nil, gobl.ErrInternal.WithCause(err)
+	}
+	return env, f, nil
 }
 
 // FormatCheck reports whether a format accepts a document for export. When

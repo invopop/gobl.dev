@@ -66,6 +66,7 @@ func TestExportImportEndpoints(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close() //nolint:errcheck
 	require.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "ubl+en16931-v2017", resp.Header.Get(api.FormatHeader), "detected format")
 	env := new(gobl.Envelope)
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(env))
 	inv, ok := env.Extract().(*bill.Invoice)

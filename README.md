@@ -85,20 +85,22 @@ PORT=3000 go run ./cmd/gobl.dev
 Open [http://localhost:8080](http://localhost:8080) for the editor; the API is
 served under `/v0` (see below).
 
-The editor has three modes:
+The editor has two modes:
 
 - **Build** calculates and validates the GOBL document, replacing it with the
   result.
-- **Export** builds the document internally, leaving the source untouched, and
-  shows it converted into a registered format. Only the formats that accept
-  the document are offered, as checked through `POST /v0/formats` while it is
-  edited.
-- **Import** converts a document in a registered format, such as UBL or CII,
-  into a GOBL envelope.
+- **Convert** shows the GOBL document beside a document in another format,
+  both editable. **Export →**, above the GOBL editor, builds the GOBL document
+  without changing it and writes it into the selected format; only formats
+  that accept the document are offered, as checked through `POST /v0/formats`
+  while it is edited. **← Import**, above the other editor, detects that
+  document's format and replaces the GOBL document with the imported one.
 
 Bare-minimum example documents for each region live in
-[`editor/examples`](./editor/examples); the picker labels them from their
-regime and addons, so adding one only requires adding its file.
+[`editor/examples`](./editor/examples), picked above the GOBL editor, and
+offered above the other editor as samples exported into their most specific
+format. They are labelled from their regime and addons, so adding one only
+requires adding its file.
 
 ### Docker
 

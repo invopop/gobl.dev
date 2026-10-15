@@ -9,7 +9,7 @@ import (
 )
 
 // FormatHeader is the response header that names the key of the format an
-// export was converted into.
+// export was converted into, or an import was detected as.
 const FormatHeader = "GOBL-Format"
 
 func handleFormatList(w http.ResponseWriter, _ *http.Request) {
@@ -30,7 +30,7 @@ func handleFormatCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleImport(w http.ResponseWriter, r *http.Request) {
-	env, err := ops.Import(r.Context(), &ops.ImportOptions{
+	env, f, err := ops.Import(r.Context(), &ops.ImportOptions{
 		Input:   r.Body,
 		Formats: queryFormats(r),
 	})
@@ -38,6 +38,7 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, err)
 		return
 	}
+	w.Header().Set(FormatHeader, f.Key.String())
 	WriteJSON(w, env)
 }
 

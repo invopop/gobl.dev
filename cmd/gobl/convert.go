@@ -65,14 +65,14 @@ func (o *convertOpts) runE(cmd *cobra.Command, args []string) error {
 	defer input.Close() // nolint:errcheck
 
 	if len(o.to) == 0 {
-		env, _, err := ops.Import(ctx, &ops.ImportOptions{
+		res, err := ops.Import(ctx, &ops.ImportOptions{
 			Input:   input,
 			Formats: formatKeys(o.from),
 		})
 		if err != nil {
 			return err
 		}
-		return o.encode(cmd, args, env)
+		return o.encode(cmd, args, res.Envelope)
 	}
 
 	res, err := ops.Export(ctx, &ops.ExportOptions{

@@ -83,10 +83,10 @@ func TestImport(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			env, f, err := Import(ctx, &ImportOptions{Input: bytes.NewReader(out.Data)})
+			res, err := Import(ctx, &ImportOptions{Input: bytes.NewReader(out.Data)})
 			require.NoError(t, err)
-			assert.Equal(t, key, f.Key, "detected format")
-			inv, ok := env.Extract().(*bill.Invoice)
+			assert.Equal(t, key, res.Format.Key, "detected format")
+			inv, ok := res.Envelope.Extract().(*bill.Invoice)
 			require.True(t, ok)
 			// UBL and CII carry the series and code as a single identifier.
 			assert.Equal(t, cbc.Code("SAMPLE-001"), inv.Code)
@@ -97,7 +97,7 @@ func TestImport(t *testing.T) {
 			if key == other {
 				other = "ubl+en16931-v2017"
 			}
-			_, _, err = Import(ctx, &ImportOptions{
+			_, err = Import(ctx, &ImportOptions{
 				Input:   bytes.NewReader(out.Data),
 				Formats: []cbc.Key{other},
 			})
@@ -106,12 +106,12 @@ func TestImport(t *testing.T) {
 	}
 
 	t.Run("empty input", func(t *testing.T) {
-		_, _, err := Import(ctx, &ImportOptions{Input: strings.NewReader("")})
+		_, err := Import(ctx, &ImportOptions{Input: strings.NewReader("")})
 		assert.ErrorIs(t, err, gobl.ErrInput)
 	})
 
 	t.Run("unrecognized input", func(t *testing.T) {
-		_, _, err := Import(ctx, &ImportOptions{Input: strings.NewReader(`{"foo":"bar"}`)})
+		_, err := Import(ctx, &ImportOptions{Input: strings.NewReader(`{"foo":"bar"}`)})
 		assert.ErrorIs(t, err, convert.ErrUnknownFormat)
 	})
 }

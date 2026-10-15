@@ -36,25 +36,21 @@ func Formats() []*convert.Format {
 }
 
 // Import detects the format of the input and converts it into a GOBL
-// envelope using the registered converters, also returning the format
-// detected.
-func Import(ctx context.Context, opts *ImportOptions) (*gobl.Envelope, *convert.Format, error) {
+// envelope using the registered converters, providing the format detected
+// and any files embedded in the input.
+func Import(ctx context.Context, opts *ImportOptions) (*convert.ImportResult, error) {
 	data, err := io.ReadAll(cancelableReader(ctx, opts.Input))
 	if err != nil {
-		return nil, nil, gobl.ErrInput.WithCause(err)
+		return nil, gobl.ErrInput.WithCause(err)
 	}
 	if len(data) == 0 {
-		return nil, nil, gobl.ErrInput.WithReason("no input data")
+		return nil, gobl.ErrInput.WithReason("no input data")
 	}
-	f, err := convert.Detect(data, opts.Formats...)
+	res, err := convert.Import(data, convert.WithFormats(opts.Formats...))
 	if err != nil {
-		return nil, nil, gobl.ErrInternal.WithCause(err)
+		return nil, gobl.ErrInternal.WithCause(err)
 	}
-	env, err := convert.Import(data, f.Key)
-	if err != nil {
-		return nil, nil, gobl.ErrInternal.WithCause(err)
-	}
-	return env, f, nil
+	return res, nil
 }
 
 // FormatCheck reports whether a format accepts a document for export. When
@@ -69,7 +65,7 @@ type FormatCheck struct {
 // of the requested formats that accepts it. Documents are wrapped in an
 // envelope, and unsigned envelopes are calculated, before conversion so that
 // drafts can be exported directly.
-func Export(ctx context.Context, opts *ExportOptions) (*convert.Output, error) {
+func Export(ctx context.Context, opts *ExportOptions) (*convert.ExportResult, error) {
 	if len(opts.Formats) == 0 {
 		return nil, gobl.ErrInput.WithReason("no output format provided")
 	}
@@ -77,7 +73,7 @@ func Export(ctx context.Context, opts *ExportOptions) (*convert.Output, error) {
 	if err != nil {
 		return nil, err
 	}
-	out, err := convert.Export(env, opts.Formats...)
+	out, err := convert.Export(env, opts.Formats[0], convert.WithAlternatives(opts.Formats[1:]...))
 	if err != nil {
 		return nil, gobl.ErrInternal.WithCause(err)
 	}

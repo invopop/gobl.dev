@@ -10,20 +10,20 @@ require (
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
-	github.com/invopop/gobl.cii v0.73.1-0.20261015161118-fca2b2f126cc
+	github.com/invopop/gobl.cii v0.75.0
 	github.com/invopop/gobl.co.dian v0.0.3
-	github.com/invopop/gobl.de.xinvoice v0.0.9-0.20261015161215-1315dc31de96
+	github.com/invopop/gobl.de.xinvoice v0.0.9-0.20261015161920-4d19d653a59a
 	github.com/invopop/gobl.dk.oioubl v0.0.9
-	github.com/invopop/gobl.es.facturae v0.25.1-0.20261015161133-fe7ee7d51629
+	github.com/invopop/gobl.es.facturae v0.26.0
 	github.com/invopop/gobl.es.verifactu v0.41.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
-	github.com/invopop/gobl.fr.ctc v0.0.12-0.20261015161201-fb5e036d147c
+	github.com/invopop/gobl.fr.ctc v0.0.12-0.20261015161841-a00720e9e318
 	github.com/invopop/gobl.it.sdi v0.86.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.pl.ksef v0.47.0
 	github.com/invopop/gobl.pt.saft v0.0.9
 	github.com/invopop/gobl.sa.zatca v0.0.6
-	github.com/invopop/gobl.ubl v0.91.1-0.20261015161105-bbb3474c3efe
+	github.com/invopop/gobl.ubl v0.93.0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1

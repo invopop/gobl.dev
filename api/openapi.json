@@ -718,6 +718,10 @@
             "type": "array",
             "description": "GOBL schemas the format can be exported from.",
             "items": { "type": "string" }
+          },
+          "attachments": {
+            "type": "boolean",
+            "description": "Whether exported documents can embed attachments."
           }
         }
       },

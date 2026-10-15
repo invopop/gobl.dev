@@ -77,7 +77,7 @@ func Export(ctx context.Context, opts *ExportOptions) (*convert.Output, error) {
 	if err != nil {
 		return nil, err
 	}
-	out, err := convert.Export(env, opts.Formats...)
+	out, err := convert.Export(env, opts.Formats[0], convert.WithAlternatives(opts.Formats[1:]...))
 	if err != nil {
 		return nil, gobl.ErrInternal.WithCause(err)
 	}

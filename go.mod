@@ -6,24 +6,24 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.509.0
+	github.com/invopop/gobl v0.509.1-0.20261015151954-18212b43872d
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
-	github.com/invopop/gobl.cii v0.73.0
+	github.com/invopop/gobl.cii v0.73.1-0.20261015152405-85804d73b6c7
 	github.com/invopop/gobl.co.dian v0.0.3
-	github.com/invopop/gobl.de.xinvoice v0.0.8
+	github.com/invopop/gobl.de.xinvoice v0.0.9-0.20261015152700-e0fe1046fc75
 	github.com/invopop/gobl.dk.oioubl v0.0.9
-	github.com/invopop/gobl.es.facturae v0.24.0
+	github.com/invopop/gobl.es.facturae v0.25.1-0.20261015152453-504171a6678b
 	github.com/invopop/gobl.es.verifactu v0.41.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
-	github.com/invopop/gobl.fr.ctc v0.0.11
+	github.com/invopop/gobl.fr.ctc v0.0.12-0.20261015152556-da11ce9c81b5
 	github.com/invopop/gobl.it.sdi v0.86.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.pl.ksef v0.47.0
 	github.com/invopop/gobl.pt.saft v0.0.9
 	github.com/invopop/gobl.sa.zatca v0.0.6
-	github.com/invopop/gobl.ubl v0.91.0
+	github.com/invopop/gobl.ubl v0.91.1-0.20261015152158-e4f39f68523c
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1

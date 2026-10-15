@@ -12,12 +12,12 @@ require (
 	github.com/invopop/gobl.br.nfse v0.0.2
 	github.com/invopop/gobl.cii v0.73.0
 	github.com/invopop/gobl.co.dian v0.0.3
-	github.com/invopop/gobl.de.xinvoice v0.0.8-0.20261015144248-1f0cb86697a1
+	github.com/invopop/gobl.de.xinvoice v0.0.8
 	github.com/invopop/gobl.dk.oioubl v0.0.9
-	github.com/invopop/gobl.es.facturae v0.24.1-0.20261015144211-eb9e179583d8
+	github.com/invopop/gobl.es.facturae v0.24.0
 	github.com/invopop/gobl.es.verifactu v0.41.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
-	github.com/invopop/gobl.fr.ctc v0.0.11-0.20261015144238-e88c284dfdcc
+	github.com/invopop/gobl.fr.ctc v0.0.11
 	github.com/invopop/gobl.it.sdi v0.86.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.pl.ksef v0.47.0

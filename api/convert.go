@@ -30,7 +30,7 @@ func handleFormatCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleImport(w http.ResponseWriter, r *http.Request) {
-	env, f, err := ops.Import(r.Context(), &ops.ImportOptions{
+	res, err := ops.Import(r.Context(), &ops.ImportOptions{
 		Input:   r.Body,
 		Formats: queryFormats(r),
 	})
@@ -38,8 +38,8 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, err)
 		return
 	}
-	w.Header().Set(FormatHeader, f.Key.String())
-	WriteJSON(w, env)
+	w.Header().Set(FormatHeader, res.Format.Key.String())
+	WriteJSON(w, res.Envelope)
 }
 
 func handleExport(w http.ResponseWriter, r *http.Request) {

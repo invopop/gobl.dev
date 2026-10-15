@@ -94,9 +94,9 @@ func TestExampleSamples(t *testing.T) {
 				Formats:      []cbc.Key{cbc.Key(ex.Sample)},
 			})
 			require.NoError(t, err)
-			_, f, err := ops.Import(context.Background(), &ops.ImportOptions{Input: bytes.NewReader(out.Data)})
+			res, err := ops.Import(context.Background(), &ops.ImportOptions{Input: bytes.NewReader(out.Data)})
 			require.NoError(t, err)
-			assert.Equal(t, ex.Sample, f.Key.String())
+			assert.Equal(t, ex.Sample, res.Format.Key.String())
 		})
 	}
 	samples := map[string]string{

@@ -81,8 +81,8 @@ document.addEventListener("alpine:init", () => {
       const current = this.findExample(this.exampleID);
       const ex =
         this.findExample(stored("editor-sample")) ||
-        (current?.formats?.length ? current : null) ||
-        this.examples.find((e) => e.formats?.length);
+        (current?.sample ? current : null) ||
+        this.examples.find((e) => e.sample);
       if (ex) await this.loadSample(ex.id);
     },
 
@@ -131,10 +131,10 @@ document.addEventListener("alpine:init", () => {
     },
 
     // loadSample replaces the other document with the example exported into
-    // its most specific format.
+    // its most specific format that can be imported back.
     async loadSample(id) {
       const ex = this.findExample(id);
-      const key = ex?.formats?.[0];
+      const key = ex?.sample;
       if (!key || !this.cm) return;
       this.sampleID = id;
       store("editor-sample", id);

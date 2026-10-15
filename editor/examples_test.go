@@ -81,6 +81,36 @@ func TestExampleFormatPreference(t *testing.T) {
 	}
 }
 
+// TestExampleSamples ensures every sample offered for import is detected as
+// the format it was exported into, so importing it is faithful.
+func TestExampleSamples(t *testing.T) {
+	for _, ex := range examples() {
+		if ex.Sample == "" {
+			continue
+		}
+		t.Run(ex.ID, func(t *testing.T) {
+			out, err := ops.Export(context.Background(), &ops.ExportOptions{
+				ParseOptions: &ops.ParseOptions{Input: bytes.NewReader(ex.Doc)},
+				Formats:      []cbc.Key{cbc.Key(ex.Sample)},
+			})
+			require.NoError(t, err)
+			_, f, err := ops.Import(context.Background(), &ops.ImportOptions{Input: bytes.NewReader(out.Data)})
+			require.NoError(t, err)
+			assert.Equal(t, ex.Sample, f.Key.String())
+		})
+	}
+	samples := map[string]string{
+		"de-zugferd": "cii+de-zugferd-v2+basic",
+		"fr-facturx": "cii+fr-facturx-v1+basic",
+		"sa-zatca":   "ubl+sa-zatca-v1",
+	}
+	for _, ex := range examples() {
+		if want, ok := samples[ex.ID]; ok {
+			assert.Equal(t, want, ex.Sample, ex.ID)
+		}
+	}
+}
+
 func TestExamplesOrder(t *testing.T) {
 	list := examples()
 	for i := 1; i < len(list); i++ {

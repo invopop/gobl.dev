@@ -12,6 +12,7 @@ import (
 	"github.com/invopop/gobl/convert"
 	"github.com/invopop/gobl/i18n"
 	"github.com/invopop/gobl/l10n"
+	"github.com/invopop/gobl/schema"
 	"github.com/invopop/gobl/tax"
 )
 
@@ -32,11 +33,14 @@ const (
 // requires adding its file. Formats that apply in the example's country come
 // first, so the most specific one is used by default.
 type example struct {
-	ID      string          `json:"id"`
-	Region  string          `json:"region"`
-	Label   string          `json:"label"`
-	Formats []string        `json:"formats,omitempty"`
-	Doc     json.RawMessage `json:"doc"`
+	ID      string   `json:"id"`
+	Region  string   `json:"region"`
+	Label   string   `json:"label"`
+	Formats []string `json:"formats,omitempty"`
+	// Sample is the first of the formats that documents can also be
+	// imported from, used to offer the example as a document to import.
+	Sample string          `json:"sample,omitempty"`
+	Doc    json.RawMessage `json:"doc"`
 }
 
 // examples are loaded on first use, as the addons they use and the formats
@@ -76,6 +80,7 @@ func mustLoadExamples() []*example {
 
 func newExample(id string, data []byte) (*example, error) {
 	var doc struct {
+		Schema   schema.ID           `json:"$schema"`
 		Regime   l10n.TaxCountryCode `json:"$regime"`
 		Addons   []cbc.Key           `json:"$addons"`
 		Supplier struct {
@@ -116,12 +121,20 @@ func newExample(id string, data []byte) (*example, error) {
 	sort.SliceStable(formats, func(i, j int) bool {
 		return appliesIn(formats[i], country.Code()) && !appliesIn(formats[j], country.Code())
 	})
+	sample := ""
+	for _, k := range formats {
+		if importable(k, doc.Schema) {
+			sample = k
+			break
+		}
+	}
 
 	return &example{
 		ID:      id,
 		Region:  region,
 		Label:   label,
 		Formats: formats,
+		Sample:  sample,
 		Doc:     json.RawMessage(data),
 	}, nil
 }

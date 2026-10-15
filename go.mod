@@ -10,18 +10,18 @@ require (
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
-	github.com/invopop/gobl.cii v0.70.0
+	github.com/invopop/gobl.cii v0.73.0
 	github.com/invopop/gobl.co.dian v0.0.3
-	github.com/invopop/gobl.de.xinvoice v0.0.6
+	github.com/invopop/gobl.de.xinvoice v0.0.7
 	github.com/invopop/gobl.dk.oioubl v0.0.9
 	github.com/invopop/gobl.fi.finvoice v0.0.6
-	github.com/invopop/gobl.fr.ctc v0.0.9
+	github.com/invopop/gobl.fr.ctc v0.0.10
 	github.com/invopop/gobl.it.sdi v0.85.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.pl.ksef v0.47.0
 	github.com/invopop/gobl.pt.saft v0.0.9
-	github.com/invopop/gobl.sa.zatca v0.0.5
-	github.com/invopop/gobl.ubl v0.87.0
+	github.com/invopop/gobl.sa.zatca v0.0.6
+	github.com/invopop/gobl.ubl v0.90.0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1

@@ -439,7 +439,8 @@ func sourceToolbar() templ.Component {
 }
 
 // inputToolbar sits above the editor for documents in other formats: the
-// import action, and samples made by exporting the examples.
+// import action, and samples made by exporting the examples into a format
+// they can be imported back from.
 func inputToolbar() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -503,7 +504,7 @@ func inputToolbar() templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, ex := range examples() {
-			if len(ex.Formats) > 0 {
+			if ex.Sample != "" {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<option value=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -511,7 +512,7 @@ func inputToolbar() templ.Component {
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(ex.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 183, Col: 26}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 184, Col: 26}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -524,7 +525,7 @@ func inputToolbar() templ.Component {
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(ex.Region)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 183, Col: 40}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 184, Col: 40}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -537,7 +538,7 @@ func inputToolbar() templ.Component {
 				var templ_7745c5c3_Var20 string
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(ex.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 183, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 184, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
@@ -617,7 +618,7 @@ func doneFlash(pane string) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs("done.pane === '" + pane + "' && done.n > 0")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 210, Col: 62}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `editor.templ`, Line: 211, Col: 62}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {

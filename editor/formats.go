@@ -3,14 +3,19 @@ package editor
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/invopop/gobl.dev/internal/ops"
+	"github.com/invopop/gobl/cbc"
 	"github.com/invopop/gobl/convert"
 	"github.com/invopop/gobl/i18n"
+	"github.com/invopop/gobl/schema"
 )
 
 // formatLabels names the formats registered with GOBL's convert package
-// that documents can be exported into, by key.
+// that documents can be exported into, by key. Formats that cannot be
+// imported, as their documents cannot be told apart from another format's,
+// are marked as such.
 func formatLabels() map[string]string {
 	labels := make(map[string]string)
 	for _, f := range convert.Formats() {
@@ -21,9 +26,19 @@ func formatLabels() map[string]string {
 		if label == "" {
 			label = f.Key.String()
 		}
+		if len(f.Import) == 0 {
+			label += " (export only)"
+		}
 		labels[f.Key.String()] = label
 	}
 	return labels
+}
+
+// importable reports whether documents of the schema in the format with the
+// key can be imported back into GOBL.
+func importable(key string, schemaID schema.ID) bool {
+	f := convert.FormatFor(cbc.Key(key))
+	return f != nil && slices.Contains(f.Import, schemaID)
 }
 
 // acceptedFormats lists the keys of the formats that accept the document for

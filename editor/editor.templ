@@ -156,7 +156,8 @@ templ sourceToolbar() {
 }
 
 // inputToolbar sits above the editor for documents in other formats: the
-// import action, and samples made by exporting the examples.
+// import action, and samples made by exporting the examples into a format
+// they can be imported back from.
 templ inputToolbar() {
 	<div class="pane-toolbar">
 		@popui.Button(props.Button{
@@ -179,7 +180,7 @@ templ inputToolbar() {
 		>
 			<option value="" disabled>Samples…</option>
 			for _, ex := range examples() {
-				if len(ex.Formats) > 0 {
+				if ex.Sample != "" {
 					<option value={ ex.ID }>{ ex.Region } · { ex.Label }</option>
 				}
 			}

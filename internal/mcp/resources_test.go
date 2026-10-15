@@ -222,7 +222,7 @@ func TestHandleAddonList(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal([]byte(tc.Text), &data))
 	assert.NotEmpty(t, data.Addons)
-	assert.Contains(t, data.Addons, "es-verifactu-v1", "core addon missing")
+	assert.Contains(t, data.Addons, "es-tbai-v1", "core addon missing")
 	assert.Contains(t, data.Addons, "mx-cfdi-v4", "externally-implemented addon missing")
 	assert.Len(t, data.Addons, len(tax.AllAddonDefs()))
 }

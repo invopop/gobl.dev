@@ -12,6 +12,7 @@ import (
 	_ "github.com/invopop/gobl.br.nfse/addon"
 	_ "github.com/invopop/gobl.co.dian/addon"
 	_ "github.com/invopop/gobl.dk.oioubl/addon"
+	_ "github.com/invopop/gobl.es.verifactu/addon"
 	_ "github.com/invopop/gobl.fi.finvoice/addon"
 	_ "github.com/invopop/gobl.fr.ctc/addon"
 	_ "github.com/invopop/gobl.it.sdi/addon"

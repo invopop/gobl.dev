@@ -219,7 +219,7 @@
       "post": {
         "operationId": "import",
         "summary": "Import a document",
-        "description": "Detects the format of a document in an external format, such as UBL or CII, and converts it into a GOBL envelope. Files embedded in the document are counted in the GOBL-Attachments header, and returned with the envelope when requested.",
+        "description": "Detects the format of a document in an external format, such as UBL or CII, and converts it into a GOBL envelope. Files embedded in the document are counted in the GOBL-Attachments header, and returned with the envelope when requested. The body is limited to 100 MB.",
         "tags": ["Convert"],
         "parameters": [
           {
@@ -270,6 +270,7 @@
             }
           },
           "400": { "$ref": "#/components/responses/Error" },
+          "413": { "$ref": "#/components/responses/Error" },
           "422": { "$ref": "#/components/responses/Error" }
         }
       }
@@ -278,7 +279,7 @@
       "post": {
         "operationId": "export",
         "summary": "Export a document",
-        "description": "Converts a GOBL document or envelope into the first of the requested formats that accepts it. Documents and unsigned envelopes are calculated and validated first. A multipart body also provides files to embed, such as a PDF version of the invoice; formats that cannot embed them are skipped.",
+        "description": "Converts a GOBL document or envelope into the first of the requested formats that accepts it. Documents and unsigned envelopes are calculated and validated first. A multipart body also provides files to embed, such as a PDF version of the invoice; formats that cannot embed them are skipped. The body is limited to 75 MB, so the exported document stays within 100 MB.",
         "tags": ["Convert"],
         "parameters": [
           {
@@ -331,6 +332,7 @@
             }
           },
           "400": { "$ref": "#/components/responses/Error" },
+          "413": { "$ref": "#/components/responses/Error" },
           "422": { "$ref": "#/components/responses/Error" }
         }
       }

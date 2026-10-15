@@ -2,6 +2,8 @@ package api
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -22,6 +24,15 @@ const FormatHeader = "GOBL-Format"
 // AttachmentsHeader is the response header that gives the number of files
 // embedded in an imported document.
 const AttachmentsHeader = "GOBL-Attachments"
+
+// Request body limits for conversions, in line with Peppol, whose access
+// points must accept messages of up to 100 MB. Exports are limited further,
+// as embedded files grow by a third when encoded in base64, so the exported
+// document stays within 100 MB.
+var (
+	importBodyLimit int64 = 100 << 20
+	exportBodyLimit int64 = 75 << 20
+)
 
 // multipartMemory is the size of a multipart export request kept in memory.
 // Larger files are stored temporarily on disk while the request is handled.
@@ -55,6 +66,7 @@ func handleFormatCheck(w http.ResponseWriter, r *http.Request) {
 // the "attachments" query parameter, the response also includes the files
 // embedded in the document.
 func handleImport(w http.ResponseWriter, r *http.Request) {
+	body := limitBody(w, r, importBodyLimit)
 	withAttachments := false
 	if v := r.URL.Query().Get("attachments"); v != "" {
 		b, err := strconv.ParseBool(v)
@@ -69,7 +81,7 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 		Formats: queryFormats(r),
 	})
 	if err != nil {
-		WriteError(w, err)
+		body.writeError(w, err)
 		return
 	}
 	w.Header().Set(FormatHeader, res.Format.Key.String())
@@ -93,6 +105,7 @@ func handleImport(w http.ResponseWriter, r *http.Request) {
 // requested formats that accepts it. A multipart body provides the document
 // in its "document" part and files to embed in "attachment" parts.
 func handleExport(w http.ResponseWriter, r *http.Request) {
+	body := limitBody(w, r, exportBodyLimit)
 	opts := &ops.ExportOptions{
 		ParseOptions: &ops.ParseOptions{
 			Input: r.Body,
@@ -101,7 +114,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	}
 	if mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt == "multipart/form-data" {
 		if err := r.ParseMultipartForm(multipartMemory); err != nil {
-			WriteError(w, gobl.ErrInput.WithReason("invalid multipart body: %s", err))
+			body.writeError(w, gobl.ErrInput.WithReason("invalid multipart body: %s", err))
 			return
 		}
 		defer r.MultipartForm.RemoveAll() //nolint:errcheck
@@ -112,7 +125,7 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := ops.Export(r.Context(), opts)
 	if err != nil {
-		WriteError(w, err)
+		body.writeError(w, err)
 		return
 	}
 	mime := out.Format.MIME
@@ -122,6 +135,43 @@ func handleExport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", mime)
 	w.Header().Set(FormatHeader, out.Format.Key.String())
 	_, _ = w.Write(out.Data) //nolint:errcheck
+}
+
+// limitedBody limits a request body, recording whether it was larger than
+// the limit, as errors from reading it may not keep the cause.
+type limitedBody struct {
+	io.ReadCloser
+	limit    int64
+	exceeded bool
+}
+
+// limitBody limits the request's body to n bytes.
+func limitBody(w http.ResponseWriter, r *http.Request, n int64) *limitedBody {
+	b := &limitedBody{ReadCloser: http.MaxBytesReader(w, r.Body, n), limit: n}
+	r.Body = b
+	return b
+}
+
+func (b *limitedBody) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	var mbe *http.MaxBytesError
+	if errors.As(err, &mbe) {
+		b.exceeded = true
+	}
+	return n, err
+}
+
+// writeError writes the error, or a 413 response when the body was larger
+// than the limit.
+func (b *limitedBody) writeError(w http.ResponseWriter, err error) {
+	if !b.exceeded {
+		WriteError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusRequestEntityTooLarge)
+	ge := gobl.ErrInput.WithReason("request body is larger than the %d MB limit", b.limit>>20)
+	_ = json.NewEncoder(w).Encode(ge) //nolint:errcheck
 }
 
 // readExportForm reads the document and the attachments of a multipart

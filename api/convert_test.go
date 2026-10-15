@@ -278,3 +278,46 @@ func TestExportMultipartErrors(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 }
+
+func TestConvertBodyLimits(t *testing.T) {
+	srv := httptest.NewServer(api.NewHandler())
+	defer srv.Close()
+	defer api.SetBodyLimits(1<<20, 1<<20)()
+
+	doc, err := os.ReadFile("../internal/ops/testdata/convert-invoice.json")
+	require.NoError(t, err)
+	large := bytes.Repeat([]byte("x"), 2<<20)
+
+	assertTooLarge := func(t *testing.T, resp *http.Response) {
+		t.Helper()
+		defer resp.Body.Close() //nolint:errcheck
+		assert.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
+		data, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), "larger than the 1 MB limit")
+	}
+
+	t.Run("import", func(t *testing.T) {
+		resp, err := http.Post(srv.URL+prefix+"/import", "application/xml", bytes.NewReader(large))
+		require.NoError(t, err)
+		assertTooLarge(t, resp)
+	})
+	t.Run("export", func(t *testing.T) {
+		resp, err := http.Post(srv.URL+prefix+"/export?format=ubl+en16931-v2017", "application/json", bytes.NewReader(large))
+		require.NoError(t, err)
+		assertTooLarge(t, resp)
+	})
+	t.Run("export with attachments", func(t *testing.T) {
+		body, ct := multipartExport(t, doc, false, map[string][]byte{"large.pdf": large})
+		resp, err := http.Post(srv.URL+prefix+"/export?format=ubl+en16931-v2017", ct, body)
+		require.NoError(t, err)
+		assertTooLarge(t, resp)
+	})
+	t.Run("within the limit", func(t *testing.T) {
+		body, ct := multipartExport(t, doc, false, map[string][]byte{"small.pdf": []byte("%PDF")})
+		resp, err := http.Post(srv.URL+prefix+"/export?format=ubl+en16931-v2017", ct, body)
+		require.NoError(t, err)
+		defer resp.Body.Close() //nolint:errcheck
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+}

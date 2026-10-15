@@ -215,6 +215,13 @@ the envelope:
   it returns `{"format", "envelope", "attachments"}` instead, each attachment
   with its `id`, `name`, `description`, `mime` and base64 `data`.
 
+Request bodies are limited in line with Peppol, whose access points must
+accept messages of up to 100 MB including embedded files. `/v0/import`
+accepts up to 100 MB, and `/v0/export` up to 75 MB including attachments, as
+embedded files grow by a third when encoded in base64, so the exported
+document stays within 100 MB. Larger requests are refused with
+`413 Request Entity Too Large`. The CLI has no limits.
+
 ## Project structure
 
 ```

@@ -5,7 +5,7 @@
             "description": "CorrectionOptions defines a structure used to pass configuration options to correct a previous invoice.",
             "properties": {
                 "copy_tax": {
-                    "description": "CopyTax when true will copy the tax totals from the previous document to the\npreceding document data.",
+                    "description": "When true, copies the tax totals from the previous document into the preceding document data.",
                     "title": "Copy Tax Totals",
                     "type": "boolean"
                 },

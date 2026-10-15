@@ -1,0 +1,25 @@
+{
+	"$schema": "https://gobl.org/draft-0/bill/invoice",
+	"$addons": ["it-sdi-v1"],
+	"series": "SAMPLE",
+	"code": "001",
+	"currency": "EUR",
+	"issue_date": "2026-01-15",
+	"supplier": {
+		"name": "Provide One S.r.l.",
+		"tax_id": { "country": "IT", "code": "12345678903" },
+		"addresses": [{ "street": "Via dei Mille", "num": "1", "locality": "Roma", "region": "RM", "code": "00100", "country": "IT" }]
+	},
+	"customer": {
+		"name": "Sample Consumer S.r.l.",
+		"tax_id": { "country": "IT", "code": "13029381004" },
+		"addresses": [{ "street": "Via Roma", "num": "10", "locality": "Milano", "region": "MI", "code": "20100", "country": "IT" }]
+	},
+	"lines": [
+		{
+			"quantity": "10",
+			"item": { "name": "Servizi di sviluppo", "price": "100.00" },
+			"taxes": [{ "cat": "VAT", "rate": "general" }]
+		}
+	]
+}

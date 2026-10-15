@@ -215,6 +215,93 @@
         }
       }
     },
+    "/import": {
+      "post": {
+        "operationId": "import",
+        "summary": "Import a document",
+        "description": "Detects the format of a document in an external format, such as UBL or CII, and converts it into a GOBL envelope.",
+        "tags": ["Convert"],
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "description": "Format keys to limit detection to, comma-separated or repeated.",
+            "schema": { "type": "string" },
+            "example": "ubl+en16931-v2017"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/xml": {
+              "schema": { "type": "string" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Imported GOBL envelope",
+            "headers": {
+              "GOBL-Format": {
+                "description": "Key of the format the document was detected as.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/export": {
+      "post": {
+        "operationId": "export",
+        "summary": "Export a document",
+        "description": "Converts a GOBL document or envelope into the first of the requested formats that accepts it. Documents and unsigned envelopes are calculated and validated first.",
+        "tags": ["Convert"],
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": true,
+            "description": "Format keys to export into, in order of preference, comma-separated or repeated.",
+            "schema": { "type": "string" },
+            "example": "ubl+en16931-v2017"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document in the format used, with the format's media type",
+            "headers": {
+              "GOBL-Format": {
+                "description": "Key of the format the document was converted into.",
+                "schema": { "type": "string" }
+              }
+            },
+            "content": {
+              "application/xml": {
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
     "/keygen": {
       "post": {
         "operationId": "keygen",
@@ -398,6 +485,66 @@
           "404": { "$ref": "#/components/responses/Error" }
         }
       }
+    },
+    "/formats": {
+      "get": {
+        "operationId": "listFormats",
+        "summary": "List conversion formats",
+        "description": "Lists the external formats registered by the bundled converters, with the GOBL schemas each can import and export.",
+        "tags": ["Convert"],
+        "responses": {
+          "200": {
+            "description": "List of formats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "formats": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Format" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "checkFormats",
+        "summary": "Check formats for a document",
+        "description": "Builds the GOBL document or envelope and reports, for each format that exports its schema, whether the format accepts it, with the reasons for refusals.",
+        "tags": ["Convert"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Format checks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "formats": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/FormatCheck" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/Error" }
+        }
+      }
     }
   },
   "components": {
@@ -550,6 +697,48 @@
           }
         }
       },
+      "Format": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string", "example": "ubl+en16931-v2017" },
+          "name": { "$ref": "#/components/schemas/I18nString" },
+          "description": { "$ref": "#/components/schemas/I18nString" },
+          "mime": { "type": "string", "example": "application/xml" },
+          "syntax": { "type": "string", "example": "ubl" },
+          "countries": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "import": {
+            "type": "array",
+            "description": "GOBL schemas the format can be imported into.",
+            "items": { "type": "string" }
+          },
+          "export": {
+            "type": "array",
+            "description": "GOBL schemas the format can be exported from.",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "FormatCheck": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Format" },
+          {
+            "type": "object",
+            "properties": {
+              "accepted": {
+                "type": "boolean",
+                "description": "Whether the format accepts the document for export."
+              },
+              "error": {
+                "$ref": "#/components/schemas/Error",
+                "description": "Why the format refuses the document, usually as faults, or why accepting it still failed to convert."
+              }
+            }
+          }
+        ]
+      },
       "I18nString": {
         "type": "object",
         "description": "Localized string keyed by language code.",
@@ -594,6 +783,7 @@
   "tags": [
     { "name": "Documents", "description": "Build, validate, correct, and replicate GOBL documents." },
     { "name": "Signing", "description": "Sign and verify GOBL envelopes." },
+    { "name": "Convert", "description": "Convert documents between GOBL and external formats such as UBL and CII." },
     { "name": "Reference", "description": "JSON schemas, tax regimes, and format addons." },
     { "name": "Meta", "description": "Service metadata." }
   ]

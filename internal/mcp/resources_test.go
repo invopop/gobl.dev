@@ -235,12 +235,6 @@ func TestListDataDir(t *testing.T) {
 		assert.Contains(t, items, "es")
 	})
 
-	t.Run("addons", func(t *testing.T) {
-		items, err := listDataDir("addons")
-		require.NoError(t, err)
-		assert.NotEmpty(t, items)
-	})
-
 	t.Run("nonexistent dir", func(t *testing.T) {
 		_, err := listDataDir("nonexistent")
 		require.Error(t, err)

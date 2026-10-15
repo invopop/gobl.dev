@@ -1,0 +1,27 @@
+{
+	"$schema": "https://gobl.org/draft-0/bill/invoice",
+	"$addons": ["de-zugferd-v2"],
+	"series": "SAMPLE",
+	"code": "001",
+	"currency": "EUR",
+	"issue_date": "2026-01-15",
+	"supplier": {
+		"name": "Provide One GmbH",
+		"tax_id": { "country": "DE", "code": "111111125" },
+		"addresses": [{ "street": "Dietmar-Hopp-Allee 16", "locality": "Walldorf", "code": "69190", "country": "DE" }]
+	},
+	"customer": {
+		"name": "Sample Consumer GmbH",
+		"addresses": [{ "street": "Werner-Heisenberg-Allee 25", "locality": "München", "code": "80939", "country": "DE" }]
+	},
+	"lines": [
+		{
+			"quantity": "10",
+			"item": { "name": "Development services", "price": "100.00" },
+			"taxes": [{ "cat": "VAT", "rate": "general" }]
+		}
+	],
+	"payment": {
+		"terms": { "due_dates": [{ "date": "2026-02-15", "percent": "100%" }] }
+	}
+}

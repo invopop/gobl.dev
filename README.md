@@ -15,7 +15,7 @@ Released under the Apache 2.0 [LICENSE](https://github.com/invopop/gobl.dev/blob
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/invopop/gobl.dev)
 
 Core GOBL is a pure document library. This project composes it with every
-GOBL addon (see [`bundle/`](./bundle)) and ships two binaries:
+GOBL addon and converter (see [`bundle/`](./bundle)) and ships two binaries:
 
 | Binary     | Package          | What it is |
 |------------|------------------|------------|
@@ -43,6 +43,7 @@ Commands:
 | `gobl sign` | Sign an envelope with a JWK private key. |
 | `gobl verify` | Verify an envelope's signatures. |
 | `gobl replicate` | Clone a document with a fresh UUID. |
+| `gobl convert` | Convert documents between GOBL and external formats such as UBL and CII (see [Converters](#converters)). |
 | `gobl keygen` | Generate an ES256 key pair. |
 | `gobl serve` | Launch the HTTP API server (see [API](#http-api)). |
 | `gobl mcp` | Launch a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio for AI tools and editors. |
@@ -60,6 +61,13 @@ gobl build -i ./invoice.yaml --set-file customer=./party.yaml --set series=TEST
 # Correct an invoice with a credit note
 gobl correct -i ./invoice.json --credit
 
+# Export an invoice as UBL, and import it back into GOBL
+gobl convert ./invoice.json ./invoice.xml --to ubl+en16931-v2017
+gobl convert -i ./invoice.xml
+
+# List the available conversion formats
+gobl convert --list -i
+
 # Serve the HTTP API on :8080
 gobl serve
 ```
@@ -76,6 +84,23 @@ PORT=3000 go run ./cmd/gobl.dev
 
 Open [http://localhost:8080](http://localhost:8080) for the editor; the API is
 served under `/v0` (see below).
+
+The editor has two modes:
+
+- **Build** calculates and validates the GOBL document, replacing it with the
+  result.
+- **Convert** shows the GOBL document beside a document in another format,
+  both editable. **Export →**, above the GOBL editor, builds the GOBL document
+  without changing it and writes it into the selected format; only formats
+  that accept the document are offered, as checked through `POST /v0/formats`
+  while it is edited. **← Import**, above the other editor, detects that
+  document's format and replaces the GOBL document with the imported one.
+
+Bare-minimum example documents for each region live in
+[`editor/examples`](./editor/examples), picked above the GOBL editor, and
+offered above the other editor as samples exported into their most specific
+format. They are labelled from their regime and addons, so adding one only
+requires adding its file.
 
 ### Docker
 
@@ -102,6 +127,8 @@ the `/v0` prefix:
 | `POST` | `/v0/verify` | Verify an envelope's signatures |
 | `POST` | `/v0/correct` | Generate a corrective document (credit/debit note) |
 | `POST` | `/v0/replicate` | Clone a document with a new UUID |
+| `POST` | `/v0/import` | Detect the format of the raw body (e.g. UBL XML) and import it into a GOBL envelope; `?format=` limits detection |
+| `POST` | `/v0/export?format={key}` | Export a GOBL document or envelope into the first accepting format; the key used is returned in the `GOBL-Format` header |
 | `POST` | `/v0/keygen` | Generate an ES256 key pair |
 | `GET` | `/v0/schemas` | List registered JSON schemas |
 | `GET` | `/v0/schemas/{path}` | Fetch a specific schema (add `?bundle` for bundled) |
@@ -109,6 +136,8 @@ the `/v0` prefix:
 | `GET` | `/v0/regimes/{code}` | Fetch a specific tax regime definition |
 | `GET` | `/v0/addons` | List available addons |
 | `GET` | `/v0/addons/{key}` | Fetch a specific addon definition |
+| `GET` | `/v0/formats` | List the conversion formats registered by the bundled converters |
+| `POST` | `/v0/formats` | Check which formats accept a GOBL document, with the reasons for refusals |
 | `POST` | `/v0/mcp` | Model Context Protocol (MCP) endpoint |
 | `GET` | `/v0/openapi.json` | OpenAPI specification |
 
@@ -129,6 +158,30 @@ workflow attaches the wasm build to each GitHub Release, uploads it to
 addons the binaries ship with — one blank import per addon module. Add an
 approved addon there and both `gobl` and `gobl.dev` pick it up.
 
+## Converters
+
+Conversions between GOBL and external formats go through GOBL's
+[`convert`](https://github.com/invopop/gobl/tree/main/convert) register:
+converter modules register their formats when imported, and gobl.dev offers
+exactly the formats registered, through `gobl convert`, the `/v0/import`,
+`/v0/export` and `/v0/formats` endpoints, and the editor. The converters are
+blank-imported in [`bundle/bundle.go`](./bundle/bundle.go) alongside the
+addons:
+
+| Module | Formats |
+|--------|---------|
+| [gobl.ubl](https://github.com/invopop/gobl.ubl) | `ubl+en16931-v2017`, `ubl+peppol+bis-v3` |
+| [gobl.cii](https://github.com/invopop/gobl.cii) | `cii+en16931-v2017`, `cii+peppol+bis-v3` |
+| [gobl.de.xinvoice](https://github.com/invopop/gobl.de.xinvoice) | `ubl+de-xrechnung-v3`, `cii+de-xrechnung-v3`, `cii+de-zugferd-v2` (`+basic`, `+extended`) |
+| [gobl.fr.ctc](https://github.com/invopop/gobl.fr.ctc) | `ubl+fr-ctc-cius-v1`, `ubl+fr-ctc-extended-v1`, `cii+fr-ctc-cius-v1`, `cii+fr-ctc-extended-v1`, `cii+fr-ctc-facturx-v1`, `cii+fr-facturx-v1` (`+basic`, `+extended`), `cii+fr-choruspro-v1`, `cdar+fr-ctc-cdv-v1` (`+ppf`) |
+| [gobl.sa.zatca](https://github.com/invopop/gobl.sa.zatca) | `ubl+sa-zatca-v1` |
+
+Format keys follow GOBL's naming rules (`<syntax>[+<layer>...]`). Each
+format's converter decides whether it accepts a document, typically requiring
+the addons of its specification, and explains a refusal with rules faults.
+`POST /v0/formats` reports, for each format that exports a document's schema,
+whether it accepts the document and why not.
+
 ## Project structure
 
 ```
@@ -136,7 +189,7 @@ cmd/
   gobl/            CLI entry point          (binary: gobl)
   gobl.dev/        web server entry point   (binary: gobl.dev)
 api/               HTTP API handler (package api)
-bundle/            addon registration (package bundle)
+bundle/            addon and converter registration (package bundle)
 editor/            browser editor (PopUI + Templ)
 internal/
   ops/             document operations engine (build, validate, sign, …)

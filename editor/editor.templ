@@ -13,6 +13,7 @@ templ Page() {
 		Importmap: []props.Import{
 			{Name: "codemirror", URL: "https://esm.sh/codemirror@6.0.1"},
 			{Name: "@codemirror/state", URL: "https://esm.sh/@codemirror/state@6"},
+			{Name: "@codemirror/lang-xml", URL: "https://esm.sh/@codemirror/lang-xml@6"},
 			{Name: "codemirror-json-schema", URL: "https://esm.sh/@invopop/codemirror-json-schema@0.9.3"},
 			{Name: "@fsegurai/codemirror-theme-vscode-light", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-light@6"},
 			{Name: "@fsegurai/codemirror-theme-vscode-dark", URL: "https://esm.sh/@fsegurai/codemirror-theme-vscode-dark@6"},
@@ -32,41 +33,7 @@ templ Page() {
 		@popui.Header(props.Header{
 			Title: goblTitle(),
 		}) {
-			<template x-if="success > 0">
-				@popui.FlashMessage(props.FlashMessage{
-					Type:    "success",
-					Message: "Built",
-					Attributes: templ.Attributes{
-						":key": "success",
-					},
-				})
-			</template>
-			@popui.Button(props.Button{
-				Attributes: templ.Attributes{
-					"@click": "envelop = !envelop",
-				},
-			}) {
-				@popui.Checkbox(props.Checkbox{
-					Attributes: templ.Attributes{
-						"x-model":        "envelop",
-						"@click.stop":    "",
-						"tabindex":       "-1",
-						"pointer-events": "none",
-					},
-					Class: "pointer-events-none",
-				})
-				Envelop
-			}
-			@popui.Button(props.Button{
-				Variant: props.ButtonVariantPrimary,
-				Attributes: templ.Attributes{
-					"@click":    "build()",
-					":disabled": "loading",
-					"title":     "Build (⌘/Ctrl+Enter)",
-				},
-			}) {
-				Build
-			}
+			@modeTabs()
 			@darkModeToggle()
 		}
 		@popui.Main() {
@@ -86,11 +53,170 @@ templ Page() {
 					</template>
 				</details>
 			</div>
-			<div id="editor-container">
-				@editorSkeleton()
+			<div id="editor-container" class="flex min-h-0">
+				<div class="pane flex-1 min-w-0 flex flex-col">
+					@sourceToolbar()
+					<div id="source-gobl" class="pane-body">
+						@editorSkeleton()
+					</div>
+				</div>
+				<div class="pane flex-1 min-w-0 flex flex-col border-l border-border" x-show="mode === 'convert'" x-cloak>
+					@inputToolbar()
+					<div id="source-xml" class="pane-body"></div>
+				</div>
 			</div>
 		}
 	}
+}
+
+// modeTabs switches between building GOBL documents and converting them to
+// and from the formats registered with GOBL's convert package.
+templ modeTabs() {
+	@popui.Tabs(props.Tabs{Variant: "pill", Class: "mb-0 w-auto"}) {
+		for _, m := range []struct{ Key, Label string }{{"build", "Build"}, {"convert", "Convert"}} {
+			@popui.Tab(props.Tab{
+				Variant: "pill",
+				Attributes: templ.Attributes{
+					"@click":         "setMode('" + m.Key + "')",
+					":data-state":    "mode === '" + m.Key + "' ? 'active' : ''",
+					":aria-selected": "mode === '" + m.Key + "'",
+				},
+			}) {
+				{ m.Label }
+			}
+		}
+	}
+}
+
+// sourceToolbar sits above the GOBL editor: the example picker, and either
+// the build options or the format to export into.
+templ sourceToolbar() {
+	<div class="pane-toolbar">
+		<span class="pane-name">GOBL</span>
+		<select
+			aria-label="Example"
+			x-model="exampleID"
+			@change="loadExample(exampleID)"
+			class="toolbar-select"
+		>
+			<option value="" disabled>Examples…</option>
+			for _, ex := range examples() {
+				<option value={ ex.ID }>{ ex.Region } · { ex.Label }</option>
+			}
+		</select>
+		<div class="ml-auto flex items-center gap-2">
+			@doneFlash("source")
+			<template x-if="mode === 'build'">
+				<div class="flex items-center gap-2">
+					@popui.Button(props.Button{
+						Attributes: templ.Attributes{
+							"@click": "envelop = !envelop",
+						},
+					}) {
+						@popui.Checkbox(props.Checkbox{
+							Attributes: templ.Attributes{
+								"x-model":        "envelop",
+								"@click.stop":    "",
+								"tabindex":       "-1",
+								"pointer-events": "none",
+							},
+							Class: "pointer-events-none",
+						})
+						Envelop
+					}
+					@popui.Button(props.Button{
+						Variant: props.ButtonVariantPrimary,
+						Attributes: templ.Attributes{
+							"@click":    "run('build')",
+							":disabled": "loading",
+							"title":     "Build (⌘/Ctrl+Enter)",
+						},
+					}) {
+						Build
+					}
+				</div>
+			</template>
+			<template x-if="mode === 'convert'">
+				<div class="flex items-center gap-2">
+					@formatPicker()
+					@popui.Button(props.Button{
+						Variant: props.ButtonVariantPrimary,
+						Attributes: templ.Attributes{
+							"@click":    "run('export')",
+							":disabled": "loading || !format",
+							"title":     "Export the GOBL document into the format (⌘/Ctrl+Enter)",
+						},
+					}) {
+						Export →
+					}
+				</div>
+			</template>
+		</div>
+	</div>
+}
+
+// inputToolbar sits above the editor for documents in other formats: the
+// import action, and samples made by exporting the examples into a format
+// they can be imported back from.
+templ inputToolbar() {
+	<div class="pane-toolbar">
+		@popui.Button(props.Button{
+			Variant: props.ButtonVariantPrimary,
+			Attributes: templ.Attributes{
+				"@click":    "run('import')",
+				":disabled": "loading",
+				"title":     "Import the document into GOBL (⌘/Ctrl+Enter)",
+			},
+		}) {
+			← Import
+		}
+		@doneFlash("input")
+		<span class="pane-name truncate" x-text="inputTitle || 'Other format'"></span>
+		<select
+			aria-label="Sample"
+			x-model="sampleID"
+			@change="loadSample(sampleID)"
+			class="toolbar-select ml-auto"
+		>
+			<option value="" disabled>Samples…</option>
+			for _, ex := range examples() {
+				if ex.Sample != "" {
+					<option value={ ex.ID }>{ ex.Region } · { ex.Label }</option>
+				}
+			}
+		</select>
+	</div>
+}
+
+// formatPicker selects the format to export into, from those registered with
+// GOBL's convert package that accept the document.
+templ formatPicker() {
+	<select
+		aria-label="Format"
+		x-model="format"
+		:disabled="!available.length"
+		class="toolbar-select"
+	>
+		<template x-if="!available.length">
+			<option value="" x-text="checking ? 'Checking formats…' : 'No formats accept this document'"></option>
+		</template>
+		<template x-for="f in available" :key="f.key">
+			<option :value="f.key" :selected="f.key === format" x-text="f.label"></option>
+		</template>
+	</select>
+}
+
+// doneFlash briefly confirms the last action that updated the pane.
+templ doneFlash(pane string) {
+	<template x-if={ "done.pane === '" + pane + "' && done.n > 0" }>
+		@popui.FlashMessage(props.FlashMessage{
+			Type:    "success",
+			Message: "Done",
+			Attributes: templ.Attributes{
+				":key": "done.n",
+			},
+		})
+	</template>
 }
 
 templ editorSkeleton() {
@@ -128,7 +254,12 @@ templ headExtras() {
 		if (localStorage.getItem("dark-mode") === "true") {
 			document.documentElement.classList.add("dark");
 		}
+		// Resolved by editor.js with its editors once CodeMirror is mounted.
+		// The module loads after alpine:init may have fired, so the editor
+		// component waits on this promise.
+		window._cmReady = new Promise((r) => { window._cmReadyResolve = r; });
 	</script>
+	@templ.JSONScript("editor-bootstrap", bootstrap())
 }
 
 templ darkModeToggle() {

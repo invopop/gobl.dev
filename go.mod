@@ -14,7 +14,7 @@ require (
 	github.com/invopop/gobl.co.dian v0.0.3
 	github.com/invopop/gobl.de.xinvoice v0.0.9
 	github.com/invopop/gobl.dk.oioubl v0.0.9
-	github.com/invopop/gobl.es.facturae v0.26.0
+	github.com/invopop/gobl.es.facturae v0.29.0
 	github.com/invopop/gobl.es.verifactu v0.41.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
 	github.com/invopop/gobl.fr.ctc v0.0.12
@@ -69,9 +69,9 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
-	golang.org/x/crypto v0.53.0 // indirect
-	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
-	software.sslmate.com/src/go-pkcs12 v0.7.2 // indirect
+	software.sslmate.com/src/go-pkcs12 v0.7.4 // indirect
 )

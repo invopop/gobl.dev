@@ -10,20 +10,20 @@ require (
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
-	github.com/invopop/gobl.cii v0.75.0
+	github.com/invopop/gobl.cii v0.79.0
 	github.com/invopop/gobl.co.dian v0.0.3
 	github.com/invopop/gobl.de.xinvoice v0.0.9
 	github.com/invopop/gobl.dk.oioubl v0.0.9
 	github.com/invopop/gobl.es.facturae v0.29.0
 	github.com/invopop/gobl.es.verifactu v0.41.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
-	github.com/invopop/gobl.fr.ctc v0.0.12
+	github.com/invopop/gobl.fr.ctc v0.0.13
 	github.com/invopop/gobl.it.sdi v0.86.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.pl.ksef v0.47.0
 	github.com/invopop/gobl.pt.saft v0.0.9
 	github.com/invopop/gobl.sa.zatca v0.0.6
-	github.com/invopop/gobl.ubl v0.93.0
+	github.com/invopop/gobl.ubl v0.97.0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1
@@ -51,7 +51,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/invopop/validation v0.8.0 // indirect
-	github.com/invopop/xmlctx v0.13.0 // indirect
+	github.com/invopop/xmlctx v0.14.0 // indirect
 	github.com/invopop/xmldsig v0.14.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/labstack/echo/v4 v4.15.3 // indirect

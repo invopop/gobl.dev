@@ -43,8 +43,8 @@ github.com/invopop/gobl.br.nfe v0.0.4 h1:/RWQEwP8pHej+8u6u/BNeLKjYZ4NyZJRjWGF2cP
 github.com/invopop/gobl.br.nfe v0.0.4/go.mod h1:qXzt4bz9S4+nJRbREb9QEAoO1W9r3Sjy6R207W7IuhY=
 github.com/invopop/gobl.br.nfse v0.0.2 h1:lhHnDBxs8sYBjWQ+nZ8q5/+6OUwRGPedgjJuxHDQdmI=
 github.com/invopop/gobl.br.nfse v0.0.2/go.mod h1:rgq6Kw/yaRexA7yf9+sbAI4Ugj+DrlIKsWLxv8K2lAI=
-github.com/invopop/gobl.cii v0.75.0 h1:sV2Vnus0RBXr6s4eFIAuje9JXj2RbUQ05QWbwfrf/SU=
-github.com/invopop/gobl.cii v0.75.0/go.mod h1:V9rp7WVREOHESleTO825BuslioeIzbEzZCN0GXicLsQ=
+github.com/invopop/gobl.cii v0.79.0 h1:oqCNoRdWGliQKIfmEfNkNCHS0ea+Nd1hEQbadIgzCMc=
+github.com/invopop/gobl.cii v0.79.0/go.mod h1:rHxBoTy6+MwSfu0B9It2RjstSXAfrm7sTeLuGZ5E78Q=
 github.com/invopop/gobl.co.dian v0.0.3 h1:UlMEKZSaL7m/mzRCg9gE4bnMP7HdqKoVtB0TzqCaHZI=
 github.com/invopop/gobl.co.dian v0.0.3/go.mod h1:i/bdrT1SnB7KPpJmPLUL0kqcn7OOZibEHIG1uNPXndc=
 github.com/invopop/gobl.de.xinvoice v0.0.9 h1:gQjFRSLbRPMW+YBVloRVHtLbtBc2e5lHuHNfBQSSUKE=
@@ -57,8 +57,8 @@ github.com/invopop/gobl.es.verifactu v0.41.0 h1:5WoicDVYNptzxrsHPnzbBw2xr+goizmk
 github.com/invopop/gobl.es.verifactu v0.41.0/go.mod h1:OaCSBKaTpyGGpTtojBc0YrMJqii3LpdQdJta3qsm5s4=
 github.com/invopop/gobl.fi.finvoice v0.0.6 h1:+H45L88fzfqFUX4pHFgcwHFbIVsIaTDrtmS/Ci+kczw=
 github.com/invopop/gobl.fi.finvoice v0.0.6/go.mod h1:zqLWHPlMDy/aDKslgmL4yq47RX55w54x7DS7VdZxaQM=
-github.com/invopop/gobl.fr.ctc v0.0.12 h1:t/K1eRZG29QTCkJwn+F+WDtsdzEJAWmj8ntn03TkRjA=
-github.com/invopop/gobl.fr.ctc v0.0.12/go.mod h1:VdtNrocQ1BgpnpSf3GIj3okDx6RX/KXekZ+NWGmYOF0=
+github.com/invopop/gobl.fr.ctc v0.0.16 h1:WBehpB8e3UuY71PwRo9sVXW9oKTYVsaZD2DGFGLwKlw=
+github.com/invopop/gobl.fr.ctc v0.0.16/go.mod h1:x6TpDV40efDUoIBEMQzICNFIqJlDZAt2kXz6rzztCrc=
 github.com/invopop/gobl.it.sdi v0.86.0 h1:AggnJhz+YrD2OCcr3sODMB6mKKlUjt3O0sH8QNY3Md4=
 github.com/invopop/gobl.it.sdi v0.86.0/go.mod h1:+SfnlFTPjKSZZBrKEzVlrFePukufGV2AMSA5RFoWGEw=
 github.com/invopop/gobl.mx.cfdi v0.68.0 h1:pRfKanQ7OAcRKIb/QnHTOtvXnFelSGjfP/DoUJ9Dl+s=
@@ -69,8 +69,8 @@ github.com/invopop/gobl.pt.saft v0.0.9 h1:muphsEldIN4Fp5U3Vx1wPger6bKkeR+mKHcGye
 github.com/invopop/gobl.pt.saft v0.0.9/go.mod h1:1fXYKp8e0OH+HqAIeuNylfSaLVTyN2EOnDuzxeyQK40=
 github.com/invopop/gobl.sa.zatca v0.0.6 h1:Me+scq66q8BJsySyTeqsNRVFp0cBWRLwVt3tliiUqbg=
 github.com/invopop/gobl.sa.zatca v0.0.6/go.mod h1:O3awa6nyf8L4GwAbVhNOiThSw2nsklugsPOHhr6Y0xY=
-github.com/invopop/gobl.ubl v0.93.0 h1:WDHTmmvGD2rVsziCinAVk/jgMQ78OmCnfPNX05mavns=
-github.com/invopop/gobl.ubl v0.93.0/go.mod h1:LYnmg9fH0W8fZXK6LqzYQt3pzQYZonm2gkn4Slt1mtY=
+github.com/invopop/gobl.ubl v0.97.0 h1:WnOMnoMsOtQ2qGfI9jGtfKU8zU3zi7ckIMb3W7Qm+6A=
+github.com/invopop/gobl.ubl v0.97.0/go.mod h1:KxduqtkvGgxXyoaMAvZ97YIQUsTj//x2i4u38o8FYfE=
 github.com/invopop/icons v0.14.0 h1:Bk0hF+EI/x3XwWX1IqMeFDMdu766zY3zFBqTkImCdhU=
 github.com/invopop/icons v0.14.0/go.mod h1:rXrrY2Rz7Z7KINyQIPMaauqXTZNhVMDI2MYIiux436Y=
 github.com/invopop/jsonschema v0.14.0 h1:MHQqLhvpNUZfw+hM3AZDYK7jxO8FZoQeQM77g8iyZjg=
@@ -81,8 +81,8 @@ github.com/invopop/popui.go v0.30.0 h1:Yx91iSDm7HW2xvGUQCdrRm+HmK1RuA7jxn26+EDbC
 github.com/invopop/popui.go v0.30.0/go.mod h1:2YoksZOz2hkSuSF+F2FUJVlnviPlAwmvu/UpD2hJww8=
 github.com/invopop/validation v0.8.0 h1:e5hXHGnONHImgJdonIpNbctg1hlWy1ncaHoVIQ0JWuw=
 github.com/invopop/validation v0.8.0/go.mod h1:nLLeXYPGwUNfdCdJo7/q3yaHO62LSx/3ri7JvgKR9vg=
-github.com/invopop/xmlctx v0.13.0 h1:ZNRMC0O/A5h8InoLVSA7tIjjrhJn/NDBYfByBUpSb+g=
-github.com/invopop/xmlctx v0.13.0/go.mod h1:xZ3Bdf0jq2GcjN6QNroUa+l37kyXDXmDEEKiBj9NAl0=
+github.com/invopop/xmlctx v0.14.0 h1:s2nfna7gylrBfS93iYqCF0d/imwTIsivtxwwvdLEWGE=
+github.com/invopop/xmlctx v0.14.0/go.mod h1:xZ3Bdf0jq2GcjN6QNroUa+l37kyXDXmDEEKiBj9NAl0=
 github.com/invopop/xmldsig v0.14.0 h1:ROwf32DZtX2EekrrOSjLLiY0s2kPEcqHZculITlZfAw=
 github.com/invopop/xmldsig v0.14.0/go.mod h1:oWDotOqdKbbwmfA1B057TVsNZW/V1XgoXsRgrW5by18=
 github.com/invopop/yaml v0.3.1 h1:f0+ZpmhfBSS4MhG+4HYseMdJhoeeopbSKbq5Rpeelso=

@@ -59,8 +59,8 @@ github.com/invopop/gobl.fi.finvoice v0.0.6 h1:+H45L88fzfqFUX4pHFgcwHFbIVsIaTDrtm
 github.com/invopop/gobl.fi.finvoice v0.0.6/go.mod h1:zqLWHPlMDy/aDKslgmL4yq47RX55w54x7DS7VdZxaQM=
 github.com/invopop/gobl.fr.ctc v0.0.17 h1:l14dyChrybP4elEEXnk/T50MAh4q4BqlkY69ajJLcBg=
 github.com/invopop/gobl.fr.ctc v0.0.17/go.mod h1:o5hcclGTbZ9Bc6xw4XGb/Kdco/AsWWU5Pzz9vXzF2vg=
-github.com/invopop/gobl.it.sdi v0.86.0 h1:AggnJhz+YrD2OCcr3sODMB6mKKlUjt3O0sH8QNY3Md4=
-github.com/invopop/gobl.it.sdi v0.86.0/go.mod h1:+SfnlFTPjKSZZBrKEzVlrFePukufGV2AMSA5RFoWGEw=
+github.com/invopop/gobl.it.sdi v0.90.0 h1:FvY8+1BgTa1ixaU/sAoDhGuxc1hsnl5EI41pdCLUTnQ=
+github.com/invopop/gobl.it.sdi v0.90.0/go.mod h1:rsKpUIomysOJJqiv4zZOUCjXaZNslDqIgAqY5hpo3lk=
 github.com/invopop/gobl.mx.cfdi v0.68.0 h1:pRfKanQ7OAcRKIb/QnHTOtvXnFelSGjfP/DoUJ9Dl+s=
 github.com/invopop/gobl.mx.cfdi v0.68.0/go.mod h1:Q4a7D39cGS5wKGF5LOnVAvKr+Cx3Yfge8+oNd3XIVv0=
 github.com/invopop/gobl.peppol v0.0.2 h1:LYp9B4Cqk+Lf5Yh59Xtt+vztUsBn2AIwgtjrfTR/ZBM=

@@ -1,12 +1,12 @@
 module github.com/invopop/gobl.dev
 
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.511.1
+	github.com/invopop/gobl v0.511.2-0.20261029152114-34ece5d258b6
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.2
@@ -23,6 +23,7 @@ require (
 	github.com/invopop/gobl.peppol v0.0.2
 	github.com/invopop/gobl.pl.ksef v0.47.0
 	github.com/invopop/gobl.pt.saft v0.0.9
+	github.com/invopop/gobl.ro.anaf v0.5.0
 	github.com/invopop/gobl.sa.zatca v0.0.6
 	github.com/invopop/gobl.ubl v0.98.0
 	github.com/invopop/icons v0.14.0
@@ -46,7 +47,7 @@ require (
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
 	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

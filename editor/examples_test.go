@@ -104,6 +104,7 @@ func TestExampleSamples(t *testing.T) {
 		"de-zugferd":  "cii+de-zugferd-v2+basic",
 		"es-facturae": "es-facturae-v3",
 		"fr-ctc":      "cii+fr-ctc-cius-v1",
+		"ro-efactura": "ubl+cius-ro-v1",
 		"sa-zatca":    "ubl+sa-zatca-v1",
 	}
 	for _, ex := range examples() {

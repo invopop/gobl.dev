@@ -179,6 +179,7 @@ addons:
 | [gobl.de.xinvoice](https://github.com/invopop/gobl.de.xinvoice) | `ubl+de-xrechnung-v3`, `cii+de-xrechnung-v3`, `cii+de-zugferd-v2` (`+basic`, `+extended`) |
 | [gobl.es.facturae](https://github.com/invopop/gobl.es.facturae) | `es-facturae-v3` |
 | [gobl.fr.ctc](https://github.com/invopop/gobl.fr.ctc) | `ubl+fr-ctc-cius-v1`, `ubl+fr-ctc-extended-v1`, `cii+fr-ctc-cius-v1`, `cii+fr-ctc-extended-v1`, `cii+fr-ctc-facturx-cius-v1`, `cii+fr-ctc-facturx-extended-v1`, `cii+fr-facturx-v1` (`+extended`, export only), `cii+fr-choruspro-v1`, `cdar+fr-ctc-cdv-v1` (`+ppf`) |
+| [gobl.ro.anaf](https://github.com/invopop/gobl.ro.anaf) | `ubl+cius-ro-v1`, `cii+cius-ro-v1` (import only) |
 | [gobl.sa.zatca](https://github.com/invopop/gobl.sa.zatca) | `ubl+sa-zatca-v1` |
 
 Format keys follow GOBL's naming rules (`<syntax>[+<layer>...]`). Each

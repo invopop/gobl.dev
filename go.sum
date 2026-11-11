@@ -69,8 +69,8 @@ github.com/invopop/gobl.pl.ksef v0.49.0 h1:sNwM9UJejZxNWc/W/9CmKdh5inJ2H3nPG3f2j
 github.com/invopop/gobl.pl.ksef v0.49.0/go.mod h1:hilNDWm6Y3mpmzF+yysHFwYBsGYuXQ/G70OOFsUXU0Q=
 github.com/invopop/gobl.pt.saft v0.0.11 h1:BPHDsUywl0LSX6JMSWbqaZa/8q6vw9ag+LOvnJgAh6U=
 github.com/invopop/gobl.pt.saft v0.0.11/go.mod h1:kYzDocEVR4KhSE6pw3tTbDCcDYTtyg1F2qPM/zG5o90=
-github.com/invopop/gobl.ro.anaf v0.6.0 h1:mhH+aZaGuXBHUnruJfTPZVuaP/ZwVNtZ4vV4TEHBlkM=
-github.com/invopop/gobl.ro.anaf v0.6.0/go.mod h1:pWpemAXFD3R7uc8WZUp+R8GVs5UCZzWZaW5JNqKiB2g=
+github.com/invopop/gobl.ro.anaf v0.7.0 h1:jhDb/NuXqpQoQzQ+1dQHNJcV7CXmPjkT+iG1AcKx0cc=
+github.com/invopop/gobl.ro.anaf v0.7.0/go.mod h1:pWpemAXFD3R7uc8WZUp+R8GVs5UCZzWZaW5JNqKiB2g=
 github.com/invopop/gobl.sa.zatca v0.0.7 h1:PT5AeeVAl5d1xvcA5BuWn1W9zy8TioQSYTGyQoXHozI=
 github.com/invopop/gobl.sa.zatca v0.0.7/go.mod h1:O3awa6nyf8L4GwAbVhNOiThSw2nsklugsPOHhr6Y0xY=
 github.com/invopop/gobl.ubl v0.101.0 h1:/+zCZIvpX84p9dkXVfaOvdz8u9t+TjOgduSzRiNezzA=

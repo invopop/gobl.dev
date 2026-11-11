@@ -1,0 +1,35 @@
+{
+	"$schema": "https://gobl.org/draft-0/bill/invoice",
+	"$addons": ["ro-efactura-v1"],
+	"series": "SAMPLE",
+	"code": "001",
+	"currency": "RON",
+	"issue_date": "2026-01-15",
+	"supplier": {
+		"name": "Exemplu Digital SRL",
+		"tax_id": { "country": "RO", "code": "12345674" },
+		"addresses": [{ "num": "16", "street": "Bulevardul Libertatii", "locality": "Sector 1", "state": "B", "code": "010101", "country": "RO" }],
+		"emails": [{ "addr": "facturare@exemplu.ro" }]
+	},
+	"customer": {
+		"name": "Client Industrial SA",
+		"tax_id": { "country": "RO", "code": "87654329" },
+		"addresses": [{ "num": "42", "street": "Strada Memorandumului", "locality": "Cluj-Napoca", "state": "CJ", "code": "400114", "country": "RO" }],
+		"emails": [{ "addr": "contabilitate@client.ro" }]
+	},
+	"lines": [
+		{
+			"quantity": "10",
+			"item": { "name": "Servicii de consultanta", "price": "500.00", "unit": "h" },
+			"taxes": [{ "cat": "VAT", "key": "standard", "percent": "21%" }]
+		}
+	],
+	"payment": {
+		"terms": { "notes": "Plata in 30 de zile" },
+		"instructions": {
+			"key": "credit-transfer",
+			"credit_transfer": [{ "iban": "RO49AAAA1B31007593840000" }],
+			"ext": { "untdid-payment-means": "30" }
+		}
+	}
+}

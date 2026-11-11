@@ -23,7 +23,7 @@ require (
 	github.com/invopop/gobl.peppol v0.0.2
 	github.com/invopop/gobl.pl.ksef v0.49.0
 	github.com/invopop/gobl.pt.saft v0.0.11
-	github.com/invopop/gobl.ro.anaf v0.6.0
+	github.com/invopop/gobl.ro.anaf v0.7.0
 	github.com/invopop/gobl.sa.zatca v0.0.7
 	github.com/invopop/gobl.ubl v0.101.0
 	github.com/invopop/icons v0.14.0

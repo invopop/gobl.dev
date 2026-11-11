@@ -20,6 +20,7 @@ import (
 	_ "github.com/invopop/gobl.peppol/addon"
 	_ "github.com/invopop/gobl.pl.ksef/addon"
 	_ "github.com/invopop/gobl.pt.saft/addon"
+	_ "github.com/invopop/gobl.ro.anaf/addon"
 	_ "github.com/invopop/gobl.sa.zatca/addon"
 
 	// Converters
@@ -29,6 +30,7 @@ import (
 	_ "github.com/invopop/gobl.fr.ctc/cdar"
 	_ "github.com/invopop/gobl.fr.ctc/cii"
 	_ "github.com/invopop/gobl.fr.ctc/ubl"
+	_ "github.com/invopop/gobl.ro.anaf"
 	_ "github.com/invopop/gobl.sa.zatca/ubl"
 	_ "github.com/invopop/gobl.ubl"
 )

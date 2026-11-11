@@ -70,6 +70,7 @@ func TestExampleFormatPreference(t *testing.T) {
 	preferred := map[string]string{
 		"de-xrechnung": "cii+de-xrechnung-v3",
 		"fr-ctc":       "cii+fr-ctc-cius-v1",
+		"ro-efactura":  "ubl+cius-ro-v1",
 		"sa-zatca":     "ubl+sa-zatca-v1",
 		"de-en16931":   "cii+en16931-v2017",
 	}
@@ -103,6 +104,7 @@ func TestExampleSamples(t *testing.T) {
 		"de-zugferd":  "cii+de-zugferd-v2+basic",
 		"es-facturae": "es-facturae-v3",
 		"fr-ctc":      "cii+fr-ctc-cius-v1",
+		"ro-efactura": "ubl+cius-ro-v1",
 		"sa-zatca":    "ubl+sa-zatca-v1",
 	}
 	for _, ex := range examples() {

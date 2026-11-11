@@ -34,11 +34,22 @@ func formatLabels() map[string]string {
 	return labels
 }
 
-// importable reports whether documents of the schema in the format with the
-// key can be imported back into GOBL.
-func importable(key string, schemaID schema.ID) bool {
+// importable reports whether the document, exported into the format with
+// the key, is detected as that format when imported back into GOBL.
+func importable(key string, schemaID schema.ID, doc []byte) bool {
 	f := convert.FormatFor(cbc.Key(key))
-	return f != nil && slices.Contains(f.Import, schemaID)
+	if f == nil || !slices.Contains(f.Import, schemaID) {
+		return false
+	}
+	out, err := ops.Export(context.Background(), &ops.ExportOptions{
+		ParseOptions: &ops.ParseOptions{Input: bytes.NewReader(doc)},
+		Formats:      []cbc.Key{f.Key},
+	})
+	if err != nil {
+		return false
+	}
+	got, err := convert.Detect(out.Data)
+	return err == nil && got.Key == f.Key
 }
 
 // acceptedFormats lists the keys of the formats that accept the document for

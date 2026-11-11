@@ -123,7 +123,7 @@ func newExample(id string, data []byte) (*example, error) {
 	})
 	sample := ""
 	for _, k := range formats {
-		if importable(k, doc.Schema) {
+		if importable(k, doc.Schema, data) {
 			sample = k
 			break
 		}

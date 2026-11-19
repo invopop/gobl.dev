@@ -30,6 +30,8 @@ import (
 	_ "github.com/invopop/gobl.fr.ctc/cdar"
 	_ "github.com/invopop/gobl.fr.ctc/cii"
 	_ "github.com/invopop/gobl.fr.ctc/ubl"
+	_ "github.com/invopop/gobl.peppol/cii"
+	_ "github.com/invopop/gobl.peppol/ubl"
 	_ "github.com/invopop/gobl.ro.anaf"
 	_ "github.com/invopop/gobl.sa.zatca/ubl"
 	_ "github.com/invopop/gobl.ubl"

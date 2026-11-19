@@ -18,6 +18,7 @@ require (
 	github.com/invopop/gobl.es.verifactu v0.41.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
 	github.com/invopop/gobl.fr.ctc v0.0.18
+	github.com/invopop/gobl.hr.eracun v0.0.0-20261117192922-cd242dd8584f
 	github.com/invopop/gobl.it.sdi v0.90.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.peppol v0.0.2

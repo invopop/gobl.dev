@@ -6,7 +6,7 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.512.0
+	github.com/invopop/gobl v0.512.1-0.20261118235559-364312914fee
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.4
@@ -18,6 +18,7 @@ require (
 	github.com/invopop/gobl.es.verifactu v0.41.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
 	github.com/invopop/gobl.fr.ctc v0.0.18
+	github.com/invopop/gobl.hr.eracun v0.0.0-20261119000157-7916abcdbb32
 	github.com/invopop/gobl.it.sdi v0.90.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.peppol v0.0.2
@@ -25,7 +26,7 @@ require (
 	github.com/invopop/gobl.pt.saft v0.0.11
 	github.com/invopop/gobl.ro.anaf v0.7.0
 	github.com/invopop/gobl.sa.zatca v0.0.7
-	github.com/invopop/gobl.ubl v0.101.0
+	github.com/invopop/gobl.ubl v0.101.1-0.20261119000013-6cc8ab847ff4
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1

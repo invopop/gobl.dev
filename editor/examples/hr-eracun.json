@@ -1,0 +1,46 @@
+{
+	"$schema": "https://gobl.org/draft-0/bill/invoice",
+	"$addons": ["hr-eracun-v1"],
+	"series": "SAMPLE",
+	"code": "001",
+	"currency": "EUR",
+	"issue_date": "2026-01-15",
+	"issue_time": "12:00:00",
+	"tax": { "ext": { "hr-eracun-process": "P1" } },
+	"supplier": {
+		"name": "Tvrtka A d.o.o.",
+		"tax_id": { "country": "HR", "code": "12345678903" },
+		"people": [
+			{
+				"key": "operator",
+				"name": { "given": "Ivan", "surname": "Horvat" },
+				"identities": [{ "type": "OIB", "code": "22222222226" }]
+			}
+		],
+		"addresses": [{ "street": "Ulica 1", "locality": "Zagreb", "code": "10000", "country": "HR" }]
+	},
+	"customer": {
+		"name": "Tvrtka B d.o.o.",
+		"tax_id": { "country": "HR", "code": "11111111119" },
+		"addresses": [{ "street": "Ulica 2", "locality": "Rijeka", "code": "51000", "country": "HR" }]
+	},
+	"lines": [
+		{
+			"quantity": "10",
+			"item": {
+				"name": "Usluge razvoja softvera",
+				"price": "100.00",
+				"unit": "h",
+				"identities": [{ "label": "CG", "code": "62.20.20" }]
+			},
+			"taxes": [{ "cat": "VAT", "rate": "general" }]
+		}
+	],
+	"payment": {
+		"terms": { "due_dates": [{ "date": "2026-02-15", "percent": "100%" }] },
+		"instructions": {
+			"key": "credit-transfer",
+			"credit_transfer": [{ "iban": "HR1210010051863000160" }]
+		}
+	}
+}

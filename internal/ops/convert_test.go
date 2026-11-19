@@ -22,6 +22,8 @@ func TestFormats(t *testing.T) {
 	}
 	assert.Contains(t, keys, cbc.Key("ubl+en16931-v2017"))
 	assert.Contains(t, keys, cbc.Key("cii+en16931-v2017"))
+	assert.Contains(t, keys, cbc.Key("ubl+peppol+bis-v3"))
+	assert.Contains(t, keys, cbc.Key("cii+peppol+bis-v3"))
 }
 
 func TestExport(t *testing.T) {

@@ -25,7 +25,7 @@ require (
 	github.com/invopop/gobl.pt.saft v0.0.11
 	github.com/invopop/gobl.ro.anaf v0.7.0
 	github.com/invopop/gobl.sa.zatca v0.0.7
-	github.com/invopop/gobl.ubl v0.102.0
+	github.com/invopop/gobl.ubl v0.103.0
 	github.com/invopop/icons v0.14.0
 	github.com/invopop/popui.go v0.30.0
 	github.com/invopop/yaml v0.3.1

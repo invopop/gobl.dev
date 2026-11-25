@@ -63,8 +63,8 @@ github.com/invopop/gobl.it.sdi v0.90.0 h1:FvY8+1BgTa1ixaU/sAoDhGuxc1hsnl5EI41pdC
 github.com/invopop/gobl.it.sdi v0.90.0/go.mod h1:rsKpUIomysOJJqiv4zZOUCjXaZNslDqIgAqY5hpo3lk=
 github.com/invopop/gobl.mx.cfdi v0.68.0 h1:pRfKanQ7OAcRKIb/QnHTOtvXnFelSGjfP/DoUJ9Dl+s=
 github.com/invopop/gobl.mx.cfdi v0.68.0/go.mod h1:Q4a7D39cGS5wKGF5LOnVAvKr+Cx3Yfge8+oNd3XIVv0=
-github.com/invopop/gobl.peppol v0.0.5-0.20261125154940-d1876588e612 h1:vPiETfZUl0K5J1ArRF1T431frCo3N79SPR33vb7fD1o=
-github.com/invopop/gobl.peppol v0.0.5-0.20261125154940-d1876588e612/go.mod h1:lYS+v9CqdTAkNovURZlVj+gWTWPsstT8GOw83crlnjA=
+github.com/invopop/gobl.peppol v0.0.5 h1:cX7kTfxzKOkwGqXcIxVuJ5+DvxrhAqcBzWDE8yeO4aI=
+github.com/invopop/gobl.peppol v0.0.5/go.mod h1:lYS+v9CqdTAkNovURZlVj+gWTWPsstT8GOw83crlnjA=
 github.com/invopop/gobl.pl.ksef v0.49.0 h1:sNwM9UJejZxNWc/W/9CmKdh5inJ2H3nPG3f2jqd5VhM=
 github.com/invopop/gobl.pl.ksef v0.49.0/go.mod h1:hilNDWm6Y3mpmzF+yysHFwYBsGYuXQ/G70OOFsUXU0Q=
 github.com/invopop/gobl.pt.saft v0.0.11 h1:BPHDsUywl0LSX6JMSWbqaZa/8q6vw9ag+LOvnJgAh6U=

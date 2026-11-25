@@ -20,7 +20,7 @@ require (
 	github.com/invopop/gobl.fr.ctc v0.0.19
 	github.com/invopop/gobl.it.sdi v0.90.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
-	github.com/invopop/gobl.peppol v0.0.5-0.20261125154940-d1876588e612
+	github.com/invopop/gobl.peppol v0.0.5
 	github.com/invopop/gobl.pl.ksef v0.49.0
 	github.com/invopop/gobl.pt.saft v0.0.11
 	github.com/invopop/gobl.ro.anaf v0.7.0

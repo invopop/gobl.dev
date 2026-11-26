@@ -15,6 +15,7 @@ import (
 	_ "github.com/invopop/gobl.es.verifactu/addon"
 	_ "github.com/invopop/gobl.fi.finvoice/addon"
 	_ "github.com/invopop/gobl.fr.ctc/addon"
+	_ "github.com/invopop/gobl.hr.fiskal/addon/fiskal"
 	_ "github.com/invopop/gobl.it.sdi/addon"
 	_ "github.com/invopop/gobl.mx.cfdi/addon"
 	_ "github.com/invopop/gobl.peppol/addon"

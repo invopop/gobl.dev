@@ -6,7 +6,7 @@ require (
 	github.com/a-h/templ v0.3.1001
 	github.com/google/go-cmp v0.7.0
 	github.com/imdario/mergo v0.3.16
-	github.com/invopop/gobl v0.512.0
+	github.com/invopop/gobl v0.512.1-0.20261124113708-a9c4b5578ef8
 	github.com/invopop/gobl.ar.arca v0.0.3
 	github.com/invopop/gobl.br.nfe v0.0.4
 	github.com/invopop/gobl.br.nfse v0.0.4
@@ -18,6 +18,7 @@ require (
 	github.com/invopop/gobl.es.verifactu v0.41.0
 	github.com/invopop/gobl.fi.finvoice v0.0.6
 	github.com/invopop/gobl.fr.ctc v0.0.19
+	github.com/invopop/gobl.hr.fiskal v0.0.0-20261124140644-6224067f89a5
 	github.com/invopop/gobl.it.sdi v0.90.0
 	github.com/invopop/gobl.mx.cfdi v0.68.0
 	github.com/invopop/gobl.peppol v0.0.5
@@ -43,7 +44,7 @@ require (
 	github.com/Oudwins/tailwind-merge-go v0.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
-	github.com/beevik/etree v1.6.0 // indirect
+	github.com/beevik/etree v1.8.1 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/expr-lang/expr v1.17.8 // indirect
@@ -63,7 +64,7 @@ require (
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/russellhaering/goxmldsig v1.6.0 // indirect
+	github.com/russellhaering/goxmldsig v1.6.1 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
